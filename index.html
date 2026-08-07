@@ -29,9 +29,14 @@
     .header-top { display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     
+    .sync-bar { display: flex; gap: 6px; align-items: center; }
     .sync-status {
       font-size: 0.7rem; color: #60a5fa; background: #1e3a8a;
-      padding: 3px 8px; border-radius: 12px; cursor: pointer; border: 1px solid #2563eb;
+      padding: 4px 8px; border-radius: 12px; cursor: pointer; border: 1px solid #2563eb;
+    }
+    .btn-sync {
+      background: #2563eb; color: #fff; border: none; padding: 4px 8px;
+      border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;
     }
 
     .nav-tabs { display: flex; gap: 6px; background: #2a2a2a; padding: 3px; border-radius: 8px; }
@@ -131,7 +136,10 @@
     <div class="header-top">
       <div>
         <h1>Gym Tracker</h1>
-        <span class="sync-status" id="sync-status" onclick="setCloudSyncId()" title="Click to change Cloud Sync ID">☁️ Cloud Active</span>
+        <div class="sync-bar">
+          <span class="sync-status" id="sync-status" onclick="setCloudSyncId()" title="Click to change Sync ID">☁️ Sync ID: default</span>
+          <button class="btn-sync" onclick="fetchFromCloud()">⚡ Force Sync</button>
+        </div>
       </div>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
@@ -174,32 +182,32 @@
         {
           name: "Pull-ups (Bodyweight)",
           sets: [
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 22, pause: 180, done: false, note: "shoulders dow chest front only chin over, no more" }
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders dow chest front only chin over, no more" }
           ]
         },
         {
           name: "Weights 15kg",
           sets: [
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" }
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" }
           ]
         },
         {
-          name: "Forehead + Weights?",
+          name: "Exercise forehead+weights?",
           sets: [
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" }
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" }
           ]
         },
         {
           name: "Ex on serpente",
           sets: [
-            { weight: 0, reps: 3, pause: 120, done: false, note: "up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 120, done: false, note: "up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 120, done: false, note: "up chest per elbows in!! With a ladder" }
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" }
           ]
         }
       ],
@@ -208,44 +216,44 @@
         {
           name: "Hip Thrust",
           sets: [
-            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 180, done: false, note: "+10+10" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "+5+5" },
-            { weight: 40, reps: 8, pause: 180, done: false, note: "+5+5" },
-            { weight: 40, reps: 6, pause: 180, done: false, note: "" },
-            { weight: 35, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 3, done: false, note: "+10+10" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "+5+5" },
+            { weight: 40, reps: 8, pause: 3, done: false, note: "+5+5" },
+            { weight: 40, reps: 6, pause: 3, done: false, note: "" },
+            { weight: 35, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Smith Machine",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Romanian Deadlift",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Bulgarian Split Squat",
           sets: [
-            { weight: 0, reps: 8, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 8, pause: 120, done: false, note: "" }
+            { weight: 0, reps: 8, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 8, pause: 2, done: false, note: "" }
           ]
         },
         {
           name: "Abduction",
           sets: [
-            { weight: 29, reps: 20, pause: 60, done: false, note: "" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "" },
+            { weight: 29, reps: 20, pause: 1, done: false, note: "" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "" },
             { weight: 36, reps: 15, pause: 0, done: false, note: "" }
           ]
         },
@@ -256,69 +264,75 @@
         {
           name: "Romanian Deadlift",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Hip Thrust",
           sets: [
-            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" }
+            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" }
           ]
         },
         {
           name: "Leg Press (feet high & wide)",
           sets: [
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Find weight" },
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" },
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" }
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Find weight" },
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" },
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" }
           ]
         },
         {
           name: "Reverse Lunges",
           sets: [
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" }
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" }
           ]
         },
         {
           name: "Abduction",
           sets: [
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" }
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" }
           ]
         },
         { name: "Cool-down Walk", cardio: true, text: "Walk 15–20 min | 4 km/h | 5% incline" }
       ]
     };
 
-    let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
+    // Load Local Data & Guarantee "Pull-ups" template exists
+    let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || {};
+    if (!workoutTemplates["Pull-ups"]) {
+      workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
+    }
+    for (let k in defaultTemplates) {
+      if (!workoutTemplates[k]) workoutTemplates[k] = defaultTemplates[k];
+    }
+
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Pull-ups';
+    if (!workoutTemplates[activeTemplateKey]) activeTemplateKey = 'Pull-ups';
+
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
-    let cloudSyncId = localStorage.getItem('cloudSyncId') || 'my-gym-tracker-sync-key';
+    let cloudSyncId = localStorage.getItem('cloudSyncId') || 'my-gym-tracker-sync';
     
     let timerInterval = null;
     let secondsLeft = 0;
     let audioCtx = null;
 
-    if (!workoutTemplates[activeTemplateKey]) {
-      activeTemplateKey = Object.keys(workoutTemplates)[0] || 'Pull-ups';
-    }
-
-    /* Native Cloud Database Sync Logic (Firebase REST Endpoint) */
-    const DB_BASE_URL = 'https://gym-tracker-cloud-default-rtdb.firebaseio.com/users';
+    /* Reliable Public REST KV Cloud Sync Engine */
+    const SYNC_BUCKET_URL = 'https://kvdb.io/A4x9zL3mN7P2qW8k';
 
     async function pushToCloud() {
       const statusEl = document.getElementById('sync-status');
-      if (statusEl) statusEl.innerText = "☁️ Saving...";
+      if (statusEl) statusEl.innerText = `☁️ Saving... (${cloudSyncId})`;
       const data = {
         workoutTemplates,
         activeTemplateKey,
@@ -326,30 +340,34 @@
         updatedAt: Date.now()
       };
       try {
-        await fetch(`${DB_BASE_URL}/${cloudSyncId}.json`, {
-          method: 'PUT',
+        await fetch(`${SYNC_BUCKET_URL}/${cloudSyncId}`, {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
         if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
       } catch (err) {
-        if (statusEl) statusEl.innerText = "☁️ Local Only";
+        if (statusEl) statusEl.innerText = `☁️ Offline (${cloudSyncId})`;
       }
     }
 
     async function fetchFromCloud() {
       const statusEl = document.getElementById('sync-status');
-      if (statusEl) statusEl.innerText = "☁️ Syncing...";
+      if (statusEl) statusEl.innerText = `☁️ Syncing... (${cloudSyncId})`;
       try {
-        const res = await fetch(`${DB_BASE_URL}/${cloudSyncId}.json`);
+        const res = await fetch(`${SYNC_BUCKET_URL}/${cloudSyncId}`);
+        if (!res.ok) throw new Error("Key not found");
         const data = await res.json();
         if (data && data.workoutTemplates) {
           workoutTemplates = data.workoutTemplates;
-          activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
+          if (!workoutTemplates["Pull-ups"]) workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
+          activeTemplateKey = data.activeTemplateKey || 'Pull-ups';
           workoutHistory = data.workoutHistory || [];
+          
           localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
           localStorage.setItem('activeTemplateKey', activeTemplateKey);
           localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+          
           renderTracker();
           if (document.getElementById('view-history').style.display !== 'none') {
             renderHistory();
@@ -359,12 +377,12 @@
           pushToCloud();
         }
       } catch (err) {
-        if (statusEl) statusEl.innerText = "☁️ Local Only";
+        pushToCloud();
       }
     }
 
     function setCloudSyncId() {
-      const input = prompt("Enter your shared Cloud Sync ID (e.g. myworkout123).\nUse the EXACT SAME ID on your phone and desktop to keep them synced automatically:", cloudSyncId);
+      const input = prompt("Enter your shared Sync Key (e.g., myworkout123):\nType the exact same key on your Phone and PC to keep them in sync!", cloudSyncId);
       if (input && input.trim() !== "") {
         cloudSyncId = input.trim().replace(/[^a-zA-Z0-9_-]/g, "");
         localStorage.setItem('cloudSyncId', cloudSyncId);
@@ -404,7 +422,7 @@
         const trimmed = name.trim();
         if (!workoutTemplates[trimmed]) {
           workoutTemplates[trimmed] = [
-            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 120, done: false, note: "" }] }
+            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 2, done: false, note: "" }] }
           ];
           activeTemplateKey = trimmed;
           saveTemplates();
@@ -459,11 +477,12 @@
       }
     }
 
-    function startTimer(seconds) {
+    function startTimer(minutes) {
       initAudio();
+      const seconds = Math.round(minutes * 60);
       if (seconds <= 0) return;
       clearInterval(timerInterval);
-      secondsLeft = Math.round(seconds);
+      secondsLeft = seconds;
       updateTimerDisplay();
 
       timerInterval = setInterval(() => {
@@ -545,7 +564,7 @@
       } else {
         workoutTemplates[activeTemplateKey].push({
           name: name,
-          sets: [{ weight: 10, reps: 10, pause: 120, done: false, note: "" }]
+          sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
         });
       }
       saveTemplates();
@@ -562,7 +581,7 @@
 
     function addSet(exIdx) {
       const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
-      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 120, note: "" };
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
       sets.push({ ...lastSet, done: false });
       saveTemplates();
       renderTracker();
@@ -607,7 +626,7 @@
             name: ex.name,
             sets: doneSets.map(s => {
               completedSetsCount++;
-              return `${s.weight}kg × ${s.reps} reps | ${s.pause}s${s.note ? ' — ' + s.note : ''}`;
+              return `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest${s.note ? ' — ' + s.note : ''}`;
             })
           });
         }
@@ -621,7 +640,6 @@
       workoutHistory.unshift(historyEntry);
       saveHistoryState();
 
-      // Clear checkmarks for next session
       workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
@@ -693,8 +711,8 @@
                     onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
                 </div>
                 <div class="val-box">
-                  <span class="val-label">REST(s)</span>
-                  <input type="number" step="5" class="val-input" value="${set.pause}" 
+                  <span class="val-label">REST(min)</span>
+                  <input type="number" step="0.5" class="val-input" value="${set.pause}" 
                     onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
                 </div>
                 <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">
@@ -747,7 +765,6 @@
       `).join('');
     }
 
-    // Auto-sync on window focus
     window.addEventListener('focus', fetchFromCloud);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') fetchFromCloud();
