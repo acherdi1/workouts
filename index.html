@@ -29,7 +29,7 @@
     .header-top { display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     
-    .sync-bar { display: flex; gap: 6px; align-items: center; }
+    .sync-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .sync-status {
       font-size: 0.7rem; color: #60a5fa; background: #1e3a8a;
       padding: 4px 8px; border-radius: 12px; cursor: pointer; border: 1px solid #2563eb;
@@ -37,6 +37,10 @@
     .btn-sync {
       background: #2563eb; color: #fff; border: none; padding: 4px 8px;
       border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-file {
+      background: #334155; color: #fff; border: 1px solid var(--border); padding: 4px 8px;
+      border-radius: 8px; font-size: 0.7rem; font-weight: 600; cursor: pointer;
     }
 
     .nav-tabs { display: flex; gap: 6px; background: #2a2a2a; padding: 3px; border-radius: 8px; }
@@ -138,7 +142,10 @@
         <h1>Gym Tracker</h1>
         <div class="sync-bar">
           <span class="sync-status" id="sync-status" onclick="setCloudSyncId()" title="Click to change Sync ID">☁️ Sync ID: default</span>
-          <button class="btn-sync" onclick="fetchFromCloud()">⚡ Force Sync</button>
+          <button class="btn-sync" onclick="fetchFromCloud()">⚡ Cloud Sync</button>
+          <button class="btn-file" onclick="exportToFile()">📥 Export File</button>
+          <button class="btn-file" onclick="document.getElementById('file-input').click()">📤 Import File</button>
+          <input type="file" id="file-input" style="display:none" accept=".json" onchange="importFromFile(event)">
         </div>
       </div>
       <div class="nav-tabs">
@@ -308,8 +315,21 @@
       ]
     };
 
-    // Load Local Data & Guarantee "Pull-ups" template exists
     let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || {};
+    
+    // Auto-Migrate any legacy rest times > 15 from seconds to minutes
+    Object.keys(workoutTemplates).forEach(tName => {
+      workoutTemplates[tName].forEach(ex => {
+        if (ex.sets) {
+          ex.sets.forEach(s => {
+            if (s.pause > 15) {
+              s.pause = Math.round((s.pause / 60) * 10) / 10;
+            }
+          });
+        }
+      });
+    });
+
     if (!workoutTemplates["Pull-ups"]) {
       workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
     }
@@ -327,8 +347,8 @@
     let secondsLeft = 0;
     let audioCtx = null;
 
-    /* Reliable Public REST KV Cloud Sync Engine */
-    const SYNC_BUCKET_URL = 'https://kvdb.io/A4x9zL3mN7P2qW8k';
+    /* Reliable Cloud Sync Engine (JSONBin / KV Storage) */
+    const SYNC_URL = 'https://api.jsonbin.io/v3/b';
 
     async function pushToCloud() {
       const statusEl = document.getElementById('sync-status');
@@ -339,25 +359,51 @@
         workoutHistory,
         updatedAt: Date.now()
       };
+      
       try {
-        await fetch(`${SYNC_BUCKET_URL}/${cloudSyncId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        let binId = localStorage.getItem(`bin_id_${cloudSyncId}`);
+        let method = binId ? 'PUT' : 'POST';
+        let url = binId ? `${SYNC_URL}/${binId}` : SYNC_URL;
+
+        const res = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Bin-Private': 'false',
+            'X-Bin-Name': cloudSyncId
+          },
           body: JSON.stringify(data)
         });
-        if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
+
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.metadata && resData.metadata.id) {
+            localStorage.setItem(`bin_id_${cloudSyncId}`, resData.metadata.id);
+          }
+          if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
+        } else {
+          if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
+        }
       } catch (err) {
-        if (statusEl) statusEl.innerText = `☁️ Offline (${cloudSyncId})`;
+        if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
       }
     }
 
     async function fetchFromCloud() {
       const statusEl = document.getElementById('sync-status');
+      let binId = localStorage.getItem(`bin_id_${cloudSyncId}`);
+      if (!binId) {
+        pushToCloud();
+        return;
+      }
+
       if (statusEl) statusEl.innerText = `☁️ Syncing... (${cloudSyncId})`;
       try {
-        const res = await fetch(`${SYNC_BUCKET_URL}/${cloudSyncId}`);
-        if (!res.ok) throw new Error("Key not found");
-        const data = await res.json();
+        const res = await fetch(`${SYNC_URL}/${binId}/latest`);
+        if (!res.ok) throw new Error("Cloud fetch error");
+        const resData = await res.json();
+        const data = resData.record;
+
         if (data && data.workoutTemplates) {
           workoutTemplates = data.workoutTemplates;
           if (!workoutTemplates["Pull-ups"]) workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
@@ -373,21 +419,64 @@
             renderHistory();
           }
           if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
-        } else {
-          pushToCloud();
         }
       } catch (err) {
-        pushToCloud();
+        if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
       }
     }
 
     function setCloudSyncId() {
-      const input = prompt("Enter your shared Sync Key (e.g., myworkout123):\nType the exact same key on your Phone and PC to keep them in sync!", cloudSyncId);
+      const input = prompt("Enter your shared Sync Key (e.g., myworkout123):\nUse the exact same Sync Key on Phone and PC to keep them connected!", cloudSyncId);
       if (input && input.trim() !== "") {
         cloudSyncId = input.trim().replace(/[^a-zA-Z0-9_-]/g, "");
         localStorage.setItem('cloudSyncId', cloudSyncId);
         fetchFromCloud();
       }
+    }
+
+    /* Shared File Export & Import Functions */
+    function exportToFile() {
+      const data = {
+        workoutTemplates,
+        activeTemplateKey,
+        workoutHistory,
+        exportDate: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `workout_data.json`;
+      a.click();
+    }
+
+    function importFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data && data.workoutTemplates) {
+            workoutTemplates = data.workoutTemplates;
+            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
+            workoutHistory = data.workoutHistory || [];
+
+            saveTemplates();
+            saveHistoryState();
+            renderTracker();
+            if (document.getElementById('view-history').style.display !== 'none') {
+              renderHistory();
+            }
+            alert("Workout data imported successfully!");
+          } else {
+            alert("Invalid workout data file structure.");
+          }
+        } catch (err) {
+          alert("Error parsing JSON file.");
+        }
+      };
+      reader.readAsText(file);
     }
 
     function saveTemplates() {
