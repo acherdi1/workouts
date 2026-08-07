@@ -14,6 +14,7 @@
       --subtext: #a0a0a0;
       --border: #2a2a2a;
       --active: #29b6f6;
+      --danger: #ff5252;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -21,15 +22,18 @@
 
     header {
       position: sticky; top: 0; background: rgba(30,30,30,0.95);
-      backdrop-filter: blur(8px); padding: 15px 20px;
+      backdrop-filter: blur(8px); padding: 12px 16px;
       display: flex; justify-content: space-between; align-items: center;
       border-bottom: 1px solid var(--border); z-index: 10;
     }
-    h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
-    .reset-btn {
-      background: transparent; border: 1px solid #ff5252; color: #ff5252;
+    h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    
+    .nav-tabs { display: flex; gap: 8px; background: #2a2a2a; padding: 4px; border-radius: 8px; }
+    .tab-btn {
+      background: transparent; border: none; color: var(--subtext);
       padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
     }
+    .tab-btn.active { background: var(--card); color: var(--text); }
 
     .container { max-width: 600px; margin: 0 auto; padding: 12px; }
 
@@ -37,7 +41,7 @@
       background: var(--card); border-radius: 12px; margin-bottom: 14px;
       padding: 14px; border: 1px solid var(--border);
     }
-    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
+    .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
 
     .set-row {
       display: grid; grid-template-columns: 36px 1fr 1fr 1fr 44px;
@@ -59,23 +63,44 @@
     }
     .completed .check-btn { background: var(--accent); color: #000; }
 
-    .cardno-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+    .cardno-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
     .note { font-size: 0.85rem; color: var(--subtext); }
+
+    .action-btn {
+      width: 100%; padding: 14px; border-radius: 10px; border: none;
+      font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px;
+    }
+    .btn-finish { background: var(--accent); color: #000; }
+    .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; }
+
+    /* History View Styling */
+    .history-item {
+      background: var(--card); border-radius: 12px; padding: 14px;
+      margin-bottom: 12px; border: 1px solid var(--border);
+    }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .history-date { font-weight: 700; color: var(--accent); font-size: 0.95rem; }
+    .history-stats { font-size: 0.8rem; color: var(--subtext); margin-bottom: 10px; }
+    .history-details {
+      border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd;
+    }
+    .history-ex-title { font-weight: 600; margin-top: 6px; color: var(--active); }
+    .history-delete { color: var(--danger); background: transparent; border: none; font-size: 0.8rem; cursor: pointer; }
 
     /* Floating Rest Timer Footer */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #1e293b; border-top: 2px solid var(--active);
-      padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
       z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
     }
     .timer-info { display: flex; flex-direction: column; }
-    .timer-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
-    .timer-time { font-size: 1.6rem; font-weight: 800; color: var(--active); font-mono: monospace; }
+    .timer-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+    .timer-time { font-size: 1.5rem; font-weight: 800; color: var(--active); font-family: monospace; }
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer {
-      background: #334155; border: none; color: white; padding: 8px 14px;
-      border-radius: 6px; font-weight: 600; cursor: pointer;
+      background: #334155; border: none; color: white; padding: 6px 12px;
+      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
     }
   </style>
 </head>
@@ -83,10 +108,21 @@
 
   <header>
     <h1>Gym Tracker</h1>
-    <button class="reset-btn" onclick="resetWorkout()">Reset All</button>
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
+      <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
+    </div>
   </header>
 
-  <div class="container" id="workout-list"></div>
+  <div class="container" id="view-tracker">
+    <div id="workout-list"></div>
+    <button class="action-btn btn-finish" onclick="finishWorkout()">Finish & Save Workout</button>
+    <button class="action-btn btn-reset" onclick="resetWorkout()">Reset Unsaved Checks</button>
+  </div>
+
+  <div class="container" id="view-history" style="display: none;">
+    <div id="history-list"></div>
+  </div>
 
   <div id="timer-bar">
     <div class="timer-info">
@@ -101,11 +137,7 @@
 
   <script>
     const defaultData = [
-      {
-        name: "Warmup Walk",
-        cardio: true,
-        text: "Light walking - 5 min"
-      },
+      { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
       {
         name: "Hip Thrust",
         sets: [
@@ -150,14 +182,11 @@
           { weight: 36, reps: 15, pause: 0, done: false, note: "" }
         ]
       },
-      {
-        name: "Cool-down Walk",
-        cardio: true,
-        text: "Walk 10min | 4km/h | 5% incline"
-      }
+      { name: "Cool-down Walk", cardio: true, text: "Walk 10min | 4km/h | 5% incline" }
     ];
 
     let workoutData = JSON.parse(localStorage.getItem('workoutData')) || defaultData;
+    let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
     let timerInterval = null;
     let secondsLeft = 0;
     let audioCtx = null;
@@ -166,10 +195,20 @@
       localStorage.setItem('workoutData', JSON.stringify(workoutData));
     }
 
+    function saveHistoryState() {
+      localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+    }
+
+    function switchTab(tab) {
+      document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
+      document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
+      document.getElementById('tab-tracker-btn').classList.toggle('active', tab === 'tracker');
+      document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+      if (tab === 'history') renderHistory();
+    }
+
     function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     function beep() {
@@ -182,7 +221,7 @@
       gain.connect(audioCtx.destination);
       
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
       gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
       
       osc.start();
@@ -236,7 +275,7 @@
       const set = workoutData[exIdx].sets[setIdx];
       set.done = !set.done;
       saveState();
-      render();
+      renderTracker();
 
       if (set.done && set.pause > 0) {
         startTimer(set.pause);
@@ -249,15 +288,72 @@
     }
 
     function resetWorkout() {
-      if (confirm("Reset current workout progress?")) {
-        workoutData = JSON.parse(JSON.stringify(defaultData));
+      if (confirm("Reset current checkmarks?")) {
+        workoutData.forEach(ex => {
+          if (ex.sets) ex.sets.forEach(s => s.done = false);
+        });
         saveState();
         stopTimer();
-        render();
+        renderTracker();
       }
     }
 
-    function render() {
+    function finishWorkout() {
+      let completedSetsCount = 0;
+      let totalVolume = 0;
+      const historyEntry = {
+        id: Date.now(),
+        date: new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        exercises: []
+      };
+
+      workoutData.forEach(ex => {
+        if (ex.cardio) return;
+        const doneSets = ex.sets.filter(s => s.done);
+        if (doneSets.length > 0) {
+          historyEntry.exercises.push({
+            name: ex.name,
+            sets: doneSets.map(s => {
+              completedSetsCount++;
+              totalVolume += (s.weight * s.reps);
+              return `${s.weight}kg × ${s.reps} reps`;
+            })
+          });
+        }
+      });
+
+      if (completedSetsCount === 0) {
+        alert("Please mark at least one set as completed before saving!");
+        return;
+      }
+
+      historyEntry.totalSets = completedSetsCount;
+      historyEntry.totalVolume = totalVolume;
+
+      workoutHistory.unshift(historyEntry);
+      saveHistoryState();
+
+      // Clear checkmarks for next session, keeping updated weights/reps
+      workoutData.forEach(ex => {
+        if (ex.sets) ex.sets.forEach(s => s.done = false);
+      });
+      saveState();
+      stopTimer();
+      renderTracker();
+
+      alert("Workout saved to History!");
+      switchTab('history');
+    }
+
+    function deleteHistoryItem(id) {
+      if (confirm("Delete this log from history?")) {
+        workoutHistory = workoutHistory.filter(item => item.id !== id);
+        saveHistoryState();
+        renderHistory();
+      }
+    }
+
+    function renderTracker() {
       const container = document.getElementById('workout-list');
       container.innerHTML = '';
 
@@ -303,7 +399,33 @@
       });
     }
 
-    render();
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      if (workoutHistory.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color: var(--subtext); margin-top: 40px;">No workout history logged yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = workoutHistory.map(item => `
+        <div class="history-item">
+          <div class="history-header">
+            <span class="history-date">${item.date}</span>
+            <button class="history-delete" onclick="deleteHistoryItem(${item.id})">Delete</button>
+          </div>
+          <div class="history-stats">
+            ${item.totalSets} completed sets | Volume: ${item.totalVolume} kg
+          </div>
+          <div class="history-details">
+            ${item.exercises.map(ex => `
+              <div class="history-ex-title">${ex.name}</div>
+              <div style="padding-left: 8px;">${ex.sets.join(' • ')}</div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderTracker();
   </script>
 </body>
 </html>
