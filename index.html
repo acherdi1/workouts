@@ -23,48 +23,70 @@
     header {
       position: sticky; top: 0; background: rgba(30,30,30,0.95);
       backdrop-filter: blur(8px); padding: 12px 16px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; flex-direction: column; gap: 8px;
       border-bottom: 1px solid var(--border); z-index: 10;
     }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     
-    .nav-tabs { display: flex; gap: 8px; background: #2a2a2a; padding: 4px; border-radius: 8px; }
+    .nav-tabs { display: flex; gap: 6px; background: #2a2a2a; padding: 3px; border-radius: 8px; }
     .tab-btn {
       background: transparent; border: none; color: var(--subtext);
-      padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
     }
     .tab-btn.active { background: var(--card); color: var(--text); }
+
+    .template-bar { display: flex; gap: 8px; align-items: center; }
+    .template-select {
+      flex: 1; background: #2a2a2a; color: #fff; border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600;
+    }
+    .btn-small {
+      background: #2a2a2a; color: var(--text); border: 1px solid var(--border);
+      padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
 
     .container { max-width: 600px; margin: 0 auto; padding: 12px; }
 
     .card {
       background: var(--card); border-radius: 12px; margin-bottom: 14px;
-      padding: 14px; border: 1px solid var(--border);
+      padding: 14px; border: 1px solid var(--border); position: relative;
     }
-    .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .card-title { font-size: 1rem; font-weight: 700; color: #fff; }
+    .card-controls { display: flex; gap: 4px; }
+    .icon-btn {
+      background: #2a2a2a; border: none; color: var(--text);
+      width: 28px; height: 28px; border-radius: 6px; font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .icon-btn.danger { color: var(--danger); }
 
     .set-row {
-      display: grid; grid-template-columns: 36px 1fr 1fr 1fr 44px;
-      align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border);
-      font-size: 0.9rem;
+      display: grid; grid-template-columns: 24px 1fr 1fr 1fr 38px 24px;
+      align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
     }
     .set-row:last-child { border-bottom: none; }
     .set-row.completed { opacity: 0.4; text-decoration: line-through; }
 
     .set-num { color: var(--subtext); font-weight: bold; }
-    .val-box { background: #2a2a2a; border-radius: 6px; padding: 6px 8px; text-align: center; }
-    .val-label { font-size: 0.65rem; color: var(--subtext); display: block; }
-    .val-input { width: 100%; background: transparent; border: none; color: #fff; text-align: center; font-size: 0.95rem; font-weight: 600; }
+    .val-box { background: #2a2a2a; border-radius: 6px; padding: 4px 6px; text-align: center; }
+    .val-label { font-size: 0.6rem; color: var(--subtext); display: block; }
+    .val-input { width: 100%; background: transparent; border: none; color: #fff; text-align: center; font-size: 0.9rem; font-weight: 600; }
 
     .check-btn {
-      width: 38px; height: 38px; border-radius: 8px; border: 2px solid var(--accent);
-      background: transparent; color: var(--accent); font-size: 1.2rem;
+      width: 36px; height: 36px; border-radius: 8px; border: 2px solid var(--accent);
+      background: transparent; color: var(--accent); font-size: 1.1rem;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .completed .check-btn { background: var(--accent); color: #000; }
 
     .cardno-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
-    .note { font-size: 0.85rem; color: var(--subtext); }
+    .note-input { width: 100%; background: #2a2a2a; border: 1px solid var(--border); border-radius: 6px; color: #ddd; padding: 6px 8px; font-size: 0.8rem; margin-top: 4px; }
+
+    .card-actions { display: flex; justify-content: space-between; margin-top: 10px; pt: 8px; border-top: 1px dashed var(--border); }
+    .btn-link { background: transparent; border: none; color: var(--active); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 
     .action-btn {
       width: 100%; padding: 14px; border-radius: 10px; border: none;
@@ -72,6 +94,7 @@
     }
     .btn-finish { background: var(--accent); color: #000; }
     .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; }
+    .btn-add-ex { background: #2a2a2a; color: var(--text); border: 1px dashed var(--subtext); margin-bottom: 12px; }
 
     /* History View Styling */
     .history-item {
@@ -79,15 +102,12 @@
       margin-bottom: 12px; border: 1px solid var(--border);
     }
     .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .history-date { font-weight: 700; color: var(--accent); font-size: 0.95rem; }
-    .history-stats { font-size: 0.8rem; color: var(--subtext); margin-bottom: 10px; }
-    .history-details {
-      border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd;
-    }
+    .history-date { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+    .history-stats { font-size: 0.8rem; color: var(--subtext); margin-bottom: 8px; }
+    .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
     .history-ex-title { font-weight: 600; margin-top: 6px; color: var(--active); }
-    .history-delete { color: var(--danger); background: transparent; border: none; font-size: 0.8rem; cursor: pointer; }
 
-    /* Floating Rest Timer Footer */
+    /* Floating Rest Timer */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #1e293b; border-top: 2px solid var(--active);
@@ -98,24 +118,28 @@
     .timer-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
     .timer-time { font-size: 1.5rem; font-weight: 800; color: var(--active); font-family: monospace; }
     .timer-controls { display: flex; gap: 8px; }
-    .btn-timer {
-      background: #334155; border: none; color: white; padding: 6px 12px;
-      border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;
-    }
+    .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Gym Tracker</h1>
-    <div class="nav-tabs">
-      <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
-      <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
+    <div class="header-top">
+      <h1>Gym Tracker</h1>
+      <div class="nav-tabs">
+        <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
+        <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
+      </div>
+    </div>
+    <div class="template-bar" id="template-bar">
+      <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
+      <button class="btn-small" onclick="createNewTemplate()">+ New</button>
     </div>
   </header>
 
   <div class="container" id="view-tracker">
     <div id="workout-list"></div>
+    <button class="action-btn btn-add-ex" onclick="addExercise()">+ Add Exercise</button>
     <button class="action-btn btn-finish" onclick="finishWorkout()">Finish & Save Workout</button>
     <button class="action-btn btn-reset" onclick="resetWorkout()">Reset Unsaved Checks</button>
   </div>
@@ -136,63 +160,118 @@
   </div>
 
   <script>
-    const defaultData = [
-      { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
-      {
-        name: "Hip Thrust",
-        sets: [
-          { weight: 0, reps: 10, pause: 180, done: false, note: "" },
-          { weight: 20, reps: 8, pause: 180, done: false, note: "+10+10" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "+5+5" },
-          { weight: 40, reps: 8, pause: 180, done: false, note: "+5+5" },
-          { weight: 40, reps: 6, pause: 180, done: false, note: "" },
-          { weight: 35, reps: 8, pause: 180, done: false, note: "" }
-        ]
-      },
-      {
-        name: "Smith Machine",
-        sets: [
-          { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" }
-        ]
-      },
-      {
-        name: "Romanian Deadlift",
-        sets: [
-          { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-          { weight: 30, reps: 8, pause: 180, done: false, note: "" }
-        ]
-      },
-      {
-        name: "Bulgarian Split Squat",
-        sets: [
-          { weight: 0, reps: 8, pause: 120, done: false, note: "" },
-          { weight: 0, reps: 8, pause: 120, done: false, note: "" }
-        ]
-      },
-      {
-        name: "Abduction",
-        sets: [
-          { weight: 29, reps: 20, pause: 60, done: false, note: "" },
-          { weight: 36, reps: 20, pause: 60, done: false, note: "" },
-          { weight: 36, reps: 15, pause: 0, done: false, note: "" }
-        ]
-      },
-      { name: "Cool-down Walk", cardio: true, text: "Walk 10min | 4km/h | 5% incline" }
-    ];
+    const defaultTemplates = {
+      "Glutes A": [
+        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
+        {
+          name: "Hip Thrust",
+          sets: [
+            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 180, done: false, note: "+10+10" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "+5+5" },
+            { weight: 40, reps: 8, pause: 180, done: false, note: "+5+5" },
+            { weight: 40, reps: 6, pause: 180, done: false, note: "" },
+            { weight: 35, reps: 8, pause: 180, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Smith Machine",
+          sets: [
+            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Romanian Deadlift",
+          sets: [
+            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Bulgarian Split Squat",
+          sets: [
+            { weight: 0, reps: 8, pause: 120, done: false, note: "" },
+            { weight: 0, reps: 8, pause: 120, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Abduction",
+          sets: [
+            { weight: 29, reps: 20, pause: 60, done: false, note: "" },
+            { weight: 36, reps: 20, pause: 60, done: false, note: "" },
+            { weight: 36, reps: 15, pause: 0, done: false, note: "" }
+          ]
+        },
+        { name: "Cool-down Walk", cardio: true, text: "Walk 10min | 4km/h | 5% incline" }
+      ],
+      "Glutes B": [
+        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
+        {
+          name: "Romanian Deadlift",
+          sets: [
+            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 180, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Hip Thrust",
+          sets: [
+            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 180, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 150, done: false, note: "" }
+          ]
+        },
+        {
+          name: "Leg Press (feet high & wide)",
+          sets: [
+            { weight: 0, reps: 12, pause: 120, done: false, note: "Find weight" },
+            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" },
+            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" }
+          ]
+        },
+        {
+          name: "Reverse Lunges",
+          sets: [
+            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" }
+          ]
+        },
+        {
+          name: "Abduction",
+          sets: [
+            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" }
+          ]
+        },
+        { name: "Cool-down Walk", cardio: true, text: "Walk 15–20 min | 4 km/h | 5% incline" }
+      ]
+    };
 
-    let workoutData = JSON.parse(localStorage.getItem('workoutData')) || defaultData;
+    let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
+    let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Glutes A';
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
     let timerInterval = null;
     let secondsLeft = 0;
     let audioCtx = null;
 
-    function saveState() {
-      localStorage.setItem('workoutData', JSON.stringify(workoutData));
+    if (!workoutTemplates[activeTemplateKey]) {
+      activeTemplateKey = Object.keys(workoutTemplates)[0] || 'Glutes A';
+    }
+
+    function saveTemplates() {
+      localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
+      localStorage.setItem('activeTemplateKey', activeTemplateKey);
     }
 
     function saveHistoryState() {
@@ -202,9 +281,34 @@
     function switchTab(tab) {
       document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
       document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
+      document.getElementById('template-bar').style.display = tab === 'tracker' ? 'flex' : 'none';
       document.getElementById('tab-tracker-btn').classList.toggle('active', tab === 'tracker');
       document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
       if (tab === 'history') renderHistory();
+    }
+
+    function changeTemplate(name) {
+      activeTemplateKey = name;
+      saveTemplates();
+      renderTracker();
+    }
+
+    function createNewTemplate() {
+      const name = prompt("Enter new workout template name:");
+      if (name && name.trim() !== '') {
+        const trimmed = name.trim();
+        if (!workoutTemplates[trimmed]) {
+          workoutTemplates[trimmed] = [
+            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 60, done: false, note: "" }] }
+          ];
+          activeTemplateKey = trimmed;
+          saveTemplates();
+          renderTemplateSelect();
+          renderTracker();
+        } else {
+          alert("A template with this name already exists!");
+        }
+      }
     }
 
     function initAudio() {
@@ -236,7 +340,7 @@
       initAudio();
       if (seconds <= 0) return;
       clearInterval(timerInterval);
-      secondsLeft = seconds;
+      secondsLeft = Math.round(seconds);
       updateTimerDisplay();
 
       timerInterval = setInterval(() => {
@@ -272,9 +376,9 @@
     }
 
     function toggleSet(exIdx, setIdx) {
-      const set = workoutData[exIdx].sets[setIdx];
+      const set = workoutTemplates[activeTemplateKey][exIdx].sets[setIdx];
       set.done = !set.done;
-      saveState();
+      saveTemplates();
       renderTracker();
 
       if (set.done && set.pause > 0) {
@@ -283,16 +387,81 @@
     }
 
     function updateVal(exIdx, setIdx, field, value) {
-      workoutData[exIdx].sets[setIdx][field] = Number(value);
-      saveState();
+      workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = field === 'note' ? value : Number(value);
+      saveTemplates();
+    }
+
+    function updateCardioText(exIdx, value) {
+      workoutTemplates[activeTemplateKey][exIdx].text = value;
+      saveTemplates();
+    }
+
+    function updateExName(exIdx, value) {
+      workoutTemplates[activeTemplateKey][exIdx].name = value;
+      saveTemplates();
+    }
+
+    function moveExercise(exIdx, dir) {
+      const list = workoutTemplates[activeTemplateKey];
+      const targetIdx = exIdx + dir;
+      if (targetIdx < 0 || targetIdx >= list.length) return;
+      const temp = list[exIdx];
+      list[exIdx] = list[targetIdx];
+      list[targetIdx] = temp;
+      saveTemplates();
+      renderTracker();
+    }
+
+    function addExercise() {
+      const isCardio = confirm("Click OK for Cardio exercise, or Cancel for Strength/Weights exercise.");
+      const name = prompt("Exercise Name:", isCardio ? "Cardio Walk" : "New Exercise");
+      if (!name) return;
+
+      if (isCardio) {
+        workoutTemplates[activeTemplateKey].push({ name: name, cardio: true, text: "5 min warm-up" });
+      } else {
+        workoutTemplates[activeTemplateKey].push({
+          name: name,
+          sets: [{ weight: 10, reps: 10, pause: 120, done: false, note: "" }]
+        });
+      }
+      saveTemplates();
+      renderTracker();
+    }
+
+    function deleteExercise(exIdx) {
+      if (confirm("Delete this exercise from template?")) {
+        workoutTemplates[activeTemplateKey].splice(exIdx, 1);
+        saveTemplates();
+        renderTracker();
+      }
+    }
+
+    function addSet(exIdx) {
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 120, note: "" };
+      sets.push({ ...lastSet, done: false });
+      saveTemplates();
+      renderTracker();
+    }
+
+    function deleteSet(exIdx, setIdx) {
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      if (sets.length <= 1) {
+        alert("An exercise must have at least one set.");
+        return;
+      }
+      sets.splice(setIdx, 1);
+      saveTemplates();
+      renderTracker();
     }
 
     function resetWorkout() {
       if (confirm("Reset current checkmarks?")) {
-        workoutData.forEach(ex => {
+        workoutTemplates[activeTemplateKey].forEach(ex => {
           if (ex.sets) ex.sets.forEach(s => s.done = false);
         });
-        saveState();
+        saveTemplates();
         stopTimer();
         renderTracker();
       }
@@ -303,11 +472,12 @@
       let totalVolume = 0;
       const historyEntry = {
         id: Date.now(),
+        templateName: activeTemplateKey,
         date: new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
         exercises: []
       };
 
-      workoutData.forEach(ex => {
+      workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.cardio) return;
         const doneSets = ex.sets.filter(s => s.done);
         if (doneSets.length > 0) {
@@ -333,11 +503,11 @@
       workoutHistory.unshift(historyEntry);
       saveHistoryState();
 
-      // Clear checkmarks for next session, keeping updated weights/reps
-      workoutData.forEach(ex => {
+      // Clear checkmarks for next session
+      workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
-      saveState();
+      saveTemplates();
       stopTimer();
       renderTracker();
 
@@ -353,21 +523,46 @@
       }
     }
 
+    function renderTemplateSelect() {
+      const select = document.getElementById('template-select');
+      select.innerHTML = Object.keys(workoutTemplates).map(name => `
+        <option value="${name}" ${name === activeTemplateKey ? 'selected' : ''}>${name}</option>
+      `).join('');
+    }
+
     function renderTracker() {
+      renderTemplateSelect();
       const container = document.getElementById('workout-list');
       container.innerHTML = '';
 
-      workoutData.forEach((ex, exIdx) => {
+      const currentList = workoutTemplates[activeTemplateKey] || [];
+
+      currentList.forEach((ex, exIdx) => {
         const card = document.createElement('div');
         card.className = 'card';
 
-        let html = `<div class="card-title">${ex.name}</div>`;
+        let html = `
+          <div class="card-header">
+            <input type="text" class="card-title" style="background:transparent; border:none; width:70%;" 
+              value="${ex.name}" onchange="updateExName(${exIdx}, this.value)">
+            <div class="card-controls">
+              <button class="icon-btn" onclick="moveExercise(${exIdx}, -1)">▲</button>
+              <button class="icon-btn" onclick="moveExercise(${exIdx}, 1)">▼</button>
+              <button class="icon-btn danger" onclick="deleteExercise(${exIdx})">✕</button>
+            </div>
+          </div>
+        `;
 
         if (ex.cardio) {
-          html += `<div class="cardno-row"><span class="note">${ex.text}</span></div>`;
+          html += `
+            <div class="cardno-row">
+              <input type="text" class="note-input" value="${ex.text}" 
+                onchange="updateCardioText(${exIdx}, this.value)" placeholder="Cardio details...">
+            </div>
+          `;
         } else {
           ex.sets.forEach((set, setIdx) => {
-            const pauseLabel = set.pause >= 60 ? `${set.pause / 60}m` : `${set.pause}s`;
+            const pauseMins = (set.pause / 60).toFixed(1).replace('.0', '');
             html += `
               <div class="set-row ${set.done ? 'completed' : ''}">
                 <span class="set-num">#${setIdx + 1}</span>
@@ -382,16 +577,28 @@
                     onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
                 </div>
                 <div class="val-box">
-                  <span class="val-label">REST</span>
-                  <span style="font-weight:600; font-size:0.85rem">${pauseLabel}</span>
+                  <span class="val-label">REST(s)</span>
+                  <input type="number" class="val-input" value="${set.pause}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
                 </div>
                 <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">
                   ${set.done ? '✓' : ''}
                 </button>
+                <button class="icon-btn danger" style="width:20px; height:20px; font-size:0.6rem;" 
+                  onclick="deleteSet(${exIdx}, ${setIdx})">✕</button>
               </div>
-              ${set.note ? `<div class="note" style="padding-left: 44px; margin-top:-2px;">Note: ${set.note}</div>` : ''}
+              <div style="padding: 0 0 4px 30px;">
+                <input type="text" class="note-input" value="${set.note || ''}" placeholder="Note (optional)"
+                  onchange="updateVal(${exIdx}, ${setIdx}, 'note', this.value)">
+              </div>
             `;
           });
+
+          html += `
+            <div class="card-actions">
+              <button class="btn-link" onclick="addSet(${exIdx})">+ Add Set</button>
+            </div>
+          `;
         }
 
         card.innerHTML = html;
@@ -409,8 +616,8 @@
       container.innerHTML = workoutHistory.map(item => `
         <div class="history-item">
           <div class="history-header">
-            <span class="history-date">${item.date}</span>
-            <button class="history-delete" onclick="deleteHistoryItem(${item.id})">Delete</button>
+            <span class="history-date">${item.templateName || 'Workout'} - ${item.date}</span>
+            <button class="icon-btn danger" style="width:24px; height:24px;" onclick="deleteHistoryItem(${item.id})">✕</button>
           </div>
           <div class="history-stats">
             ${item.totalSets} completed sets | Volume: ${item.totalVolume} kg
