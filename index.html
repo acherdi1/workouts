@@ -38,7 +38,7 @@
 
     .template-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .template-select {
-      flex: 1; min-width: 130px; background: #2a2a2a; color: #fff; border: 1px solid var(--border);
+      flex: 1; min-width: 120px; background: #2a2a2a; color: #fff; border: 1px solid var(--border);
       padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
     }
     .btn-small {
@@ -63,14 +63,13 @@
     .icon-btn.danger { color: var(--danger); }
 
     .set-row {
-      display: grid; grid-template-columns: 24px 1fr 1fr 1fr 38px 24px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr 38px 24px;
       align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border);
       font-size: 0.85rem;
     }
     .set-row:last-child { border-bottom: none; }
     .set-row.completed { opacity: 0.4; text-decoration: line-through; }
 
-    .set-num { color: var(--subtext); font-weight: bold; }
     .val-box { background: #2a2a2a; border-radius: 6px; padding: 4px 6px; text-align: center; }
     .val-label { font-size: 0.6rem; color: var(--subtext); display: block; }
     .val-input { width: 100%; background: transparent; border: none; color: #fff; text-align: center; font-size: 0.9rem; font-weight: 600; }
@@ -103,7 +102,6 @@
     }
     .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .history-date { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
-    .history-stats { font-size: 0.8rem; color: var(--subtext); margin-bottom: 8px; }
     .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
     .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 4px; color: var(--active); }
     .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; }
@@ -120,6 +118,23 @@
     .timer-time { font-size: 1.5rem; font-weight: 800; color: var(--active); font-family: monospace; }
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+
+    /* Sync Modal Overlay */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-card {
+      background: var(--card); border-radius: 12px; padding: 18px; width: 100%; max-width: 500px;
+      border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .modal-desc { font-size: 0.8rem; color: var(--subtext); line-height: 1.3; }
+    .modal-textarea {
+      width: 100%; height: 160px; background: #121212; border: 1px solid var(--border);
+      color: var(--accent); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.75rem;
+    }
+    .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -162,6 +177,24 @@
     </div>
   </div>
 
+  <!-- Sync Modal -->
+  <div class="modal-overlay" id="sync-modal">
+    <div class="modal-card">
+      <div class="modal-title">Sync Device Data</div>
+      <div class="modal-desc">
+        To sync between Phone & PC:
+        <br><b>Export:</b> Tap "Copy Data" and send/paste it on your other device.
+        <br><b>Import:</b> Paste data from your other device into the box below and tap "Import Data".
+      </div>
+      <textarea class="modal-textarea" id="sync-textarea" placeholder="Paste data here..."></textarea>
+      <div class="modal-btns">
+        <button class="btn-small" onclick="copySyncData()">Copy Data</button>
+        <button class="btn-small" style="background:var(--accent); color:#000;" onclick="importSyncData()">Import Data</button>
+        <button class="btn-small" onclick="closeSyncModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const defaultTemplates = {
       "Glutes A": [
@@ -169,44 +202,44 @@
         {
           name: "Hip Thrust",
           sets: [
-            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 180, done: false, note: "+10+10" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "+5+5" },
-            { weight: 40, reps: 8, pause: 180, done: false, note: "+5+5" },
-            { weight: 40, reps: 6, pause: 180, done: false, note: "" },
-            { weight: 35, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 3, done: false, note: "+10+10" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "+5+5" },
+            { weight: 40, reps: 8, pause: 3, done: false, note: "+5+5" },
+            { weight: 40, reps: 6, pause: 3, done: false, note: "" },
+            { weight: 35, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Smith Machine",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Romanian Deadlift",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Bulgarian Split Squat",
           sets: [
-            { weight: 0, reps: 8, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 8, pause: 120, done: false, note: "" }
+            { weight: 0, reps: 8, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 8, pause: 2, done: false, note: "" }
           ]
         },
         {
           name: "Abduction",
           sets: [
-            { weight: 29, reps: 20, pause: 60, done: false, note: "" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "" },
+            { weight: 29, reps: 20, pause: 1, done: false, note: "" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "" },
             { weight: 36, reps: 15, pause: 0, done: false, note: "" }
           ]
         },
@@ -217,44 +250,44 @@
         {
           name: "Romanian Deadlift",
           sets: [
-            { weight: 10, reps: 5, pause: 60, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 180, done: false, note: "" }
+            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Hip Thrust",
           sets: [
-            { weight: 0, reps: 10, pause: 180, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 180, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 150, done: false, note: "" }
+            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
+            { weight: 20, reps: 8, pause: 3, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
+            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" }
           ]
         },
         {
           name: "Leg Press (feet high & wide)",
           sets: [
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Find weight" },
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" },
-            { weight: 0, reps: 12, pause: 120, done: false, note: "Same weight" }
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Find weight" },
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" },
+            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" }
           ]
         },
         {
           name: "Reverse Lunges",
           sets: [
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 120, done: false, note: "Each leg" }
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
+            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" }
           ]
         },
         {
           name: "Abduction",
           sets: [
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 60, done: false, note: "15-20 reps" }
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
+            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" }
           ]
         },
         { name: "Cool-down Walk", cardio: true, text: "Walk 15–20 min | 4 km/h | 5% incline" }
@@ -264,32 +297,32 @@
         {
           name: "Pull-ups (Bodyweight)",
           sets: [
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 22, pause: 180, done: false, note: "Shoulders down, chest front only, chin over, no more" }
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders down chest front only chin over, no more" }
           ]
         },
         {
           name: "Weighted Pull-ups",
           sets: [
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 180, done: false, note: "" }
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
+            { weight: 15, reps: 5, pause: 3, done: false, note: "" }
           ]
         },
         {
           name: "Forehead + Weights",
           sets: [
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 120, done: false, note: "" }
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
+            { weight: 0, reps: 5, pause: 2, done: false, note: "" }
           ]
         },
         {
           name: "Serpente (Elbows in w/ Ladder)",
           sets: [
-            { weight: 0, reps: 3, pause: 120, done: false, note: "Up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 120, done: false, note: "Up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 120, done: false, note: "Up chest per elbows in!! With a ladder" }
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
+            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" }
           ]
         }
       ]
@@ -336,7 +369,7 @@
         const trimmed = name.trim();
         if (!workoutTemplates[trimmed]) {
           workoutTemplates[trimmed] = [
-            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 60, done: false, note: "" }] }
+            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 1, done: false, note: "" }] }
           ];
           activeTemplateKey = trimmed;
           saveTemplates();
@@ -366,44 +399,48 @@
       }
     }
 
-    /* Sync Data Feature for Phone <-> Computer */
+    /* Fixed Sync Functions */
     function openSyncModal() {
       const allData = {
         workoutTemplates: workoutTemplates,
         activeTemplateKey: activeTemplateKey,
         workoutHistory: workoutHistory
       };
-      const jsonStr = JSON.stringify(allData);
+      document.getElementById('sync-textarea').value = JSON.stringify(allData);
+      document.getElementById('sync-modal').style.display = 'flex';
+    }
 
-      const action = prompt(
-        "PHONE <-> COMPUTER SYNC:\n\n" +
-        "• To EXPORT data from this device: Copy the text below or type 'EXPORT'.\n" +
-        "• To IMPORT data onto this device: Type 'IMPORT' and click OK.\n",
-        "EXPORT"
-      );
+    function closeSyncModal() {
+      document.getElementById('sync-modal').style.display = 'none';
+    }
 
-      if (action && action.toUpperCase() === 'EXPORT') {
-        prompt("Copy this code and paste it into Sync on your other device:", jsonStr);
-      } else if (action && action.toUpperCase() === 'IMPORT') {
-        const inputData = prompt("Paste the Sync code from your other device here:");
-        if (inputData) {
-          try {
-            const parsed = JSON.parse(inputData);
-            if (parsed.workoutTemplates && parsed.workoutHistory) {
-              workoutTemplates = parsed.workoutTemplates;
-              activeTemplateKey = parsed.activeTemplateKey || Object.keys(parsed.workoutTemplates)[0];
-              workoutHistory = parsed.workoutHistory;
-              saveTemplates();
-              saveHistoryState();
-              renderTracker();
-              alert("Data synced successfully!");
-            } else {
-              alert("Invalid sync code structure.");
-            }
-          } catch(e) {
-            alert("Error parsing sync code. Make sure you copied the full code.");
-          }
+    function copySyncData() {
+      const textarea = document.getElementById('sync-textarea');
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(textarea.value);
+      alert("Data copied to clipboard! Paste it into the Sync box on your other device.");
+    }
+
+    function importSyncData() {
+      const input = document.getElementById('sync-textarea').value;
+      if (!input) return;
+      try {
+        const parsed = JSON.parse(input);
+        if (parsed.workoutTemplates && parsed.workoutHistory) {
+          workoutTemplates = parsed.workoutTemplates;
+          activeTemplateKey = parsed.activeTemplateKey || Object.keys(parsed.workoutTemplates)[0];
+          workoutHistory = parsed.workoutHistory;
+          saveTemplates();
+          saveHistoryState();
+          renderTracker();
+          closeSyncModal();
+          alert("Data imported successfully!");
+        } else {
+          alert("Invalid sync data format.");
         }
+      } catch(e) {
+        alert("Error reading sync data. Please make sure you copied the entire text.");
       }
     }
 
@@ -432,11 +469,11 @@
       }
     }
 
-    function startTimer(seconds) {
+    function startTimer(minutes) {
       initAudio();
-      if (seconds <= 0) return;
+      if (minutes <= 0) return;
       clearInterval(timerInterval);
-      secondsLeft = Math.round(seconds);
+      secondsLeft = Math.round(minutes * 60);
       updateTimerDisplay();
 
       timerInterval = setInterval(() => {
@@ -509,7 +546,7 @@
     }
 
     function addExercise() {
-      const isCardio = confirm("Click OK for Cardio/Note item, or Cancel for Weights/Strength exercise.");
+      const isCardio = confirm("Click OK for Cardio/Note item, or Cancel for Weight/Strength exercise.");
       const name = prompt("Exercise Name:", isCardio ? "Warmup Walk" : "New Exercise");
       if (!name) return;
 
@@ -518,7 +555,7 @@
       } else {
         workoutTemplates[activeTemplateKey].push({
           name: name,
-          sets: [{ weight: 10, reps: 10, pause: 120, done: false, note: "" }]
+          sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
         });
       }
       saveTemplates();
@@ -535,7 +572,7 @@
 
     function addSet(exIdx) {
       const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
-      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 120, note: "" };
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
       sets.push({ ...lastSet, done: false });
       saveTemplates();
       renderTracker();
@@ -565,7 +602,6 @@
 
     function finishWorkout() {
       let completedSetsCount = 0;
-      let totalVolume = 0;
       const historyEntry = {
         id: Date.now(),
         templateName: activeTemplateKey,
@@ -581,9 +617,7 @@
             name: ex.name,
             sets: doneSets.map(s => {
               completedSetsCount++;
-              totalVolume += (s.weight * s.reps);
-              const restLabel = s.pause >= 60 ? `${(s.pause/60).toFixed(1).replace('.0','')}m` : `${s.pause}s`;
-              return `${s.weight}kg × ${s.reps} reps (rest: ${restLabel})${s.note ? ' — ' + s.note : ''}`;
+              return `${s.weight}kg × ${s.reps} reps | ${s.pause}m${s.note ? ' — ' + s.note : ''}`;
             })
           });
         }
@@ -593,9 +627,6 @@
         alert("Please mark at least one set as completed before saving!");
         return;
       }
-
-      historyEntry.totalSets = completedSetsCount;
-      historyEntry.totalVolume = totalVolume;
 
       workoutHistory.unshift(historyEntry);
       saveHistoryState();
@@ -661,7 +692,6 @@
           ex.sets.forEach((set, setIdx) => {
             html += `
               <div class="set-row ${set.done ? 'completed' : ''}">
-                <span class="set-num">#${setIdx + 1}</span>
                 <div class="val-box">
                   <span class="val-label">KG</span>
                   <input type="number" class="val-input" value="${set.weight}" 
@@ -673,8 +703,8 @@
                     onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
                 </div>
                 <div class="val-box">
-                  <span class="val-label">REST(s)</span>
-                  <input type="number" class="val-input" value="${set.pause}" 
+                  <span class="val-label">REST(m)</span>
+                  <input type="number" step="0.5" class="val-input" value="${set.pause}" 
                     onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
                 </div>
                 <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">
@@ -683,7 +713,7 @@
                 <button class="icon-btn danger" style="width:20px; height:20px; font-size:0.6rem;" 
                   onclick="deleteSet(${exIdx}, ${setIdx})">✕</button>
               </div>
-              <div style="padding: 0 0 4px 30px;">
+              <div style="padding: 0 0 4px 0;">
                 <input type="text" class="note-input" value="${set.note || ''}" placeholder="Note (optional)"
                   onchange="updateVal(${exIdx}, ${setIdx}, 'note', this.value)">
               </div>
@@ -714,9 +744,6 @@
           <div class="history-header">
             <span class="history-date">${item.templateName || 'Workout'} - ${item.date}</span>
             <button class="icon-btn danger" style="width:24px; height:24px;" onclick="deleteHistoryItem(${item.id})">✕</button>
-          </div>
-          <div class="history-stats">
-            ${item.totalSets} completed sets | Volume: ${item.totalVolume} kg
           </div>
           <div class="history-details">
             ${item.exercises.map(ex => `
