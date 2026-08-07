@@ -1,185 +1,309 @@
-<!doctype html>
-<html lang="ru">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Workout Log</title>
-<style>
-:root{--bg:#0f1115;--card:#181b22;--card2:#20242d;--text:#f4f5f7;--muted:#9da4b0;--accent:#7c5cff;--danger:#ff5c6c;--line:#2b303b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.app{max-width:760px;margin:auto;padding:18px 14px 90px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-h1{font-size:25px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px}
-button,input,select{font:inherit}button{border:0;border-radius:12px;padding:11px 14px;background:var(--card2);color:var(--text);cursor:pointer}
-button.primary{background:var(--accent);font-weight:700}.danger{color:#ff8791}.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{flex:1}.tabs button.active{background:var(--accent)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
-.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}
-input,select{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;width:100%}
-.exercise-head{display:flex;gap:8px;align-items:center;margin-bottom:12px}.exercise-head input{font-weight:700;font-size:16px}
-.set{display:grid;grid-template-columns:42px 1fr 1fr 76px 42px;gap:7px;align-items:center;margin:7px 0}
-.setnum{text-align:center;color:var(--muted)}.rest{font-size:12px;color:var(--muted);text-align:center}.check{background:#263b2c;color:#8ee6a1}
-.addset{width:100%;margin-top:8px}.timer{font-variant-numeric:tabular-nums;font-size:25px;font-weight:700}.timer small{font-size:12px;color:var(--muted);font-weight:400}
-.timerbox{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border-radius:12px;padding:10px 12px;margin-top:10px}
-.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{background:var(--card2);padding:12px;border-radius:12px}.stat b{display:block;font-size:18px}.stat span{font-size:11px;color:var(--muted)}
-.history-item{padding:12px 0;border-bottom:1px solid var(--line)}.history-item:last-child{border-bottom:0}
-.empty{color:var(--muted);text-align:center;padding:30px 10px}.small{font-size:12px;color:var(--muted)}
-@media(max-width:560px){.set{grid-template-columns:28px 1fr 1fr 64px 38px}.set input{padding:9px 6px}.set button{padding:9px 5px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Workout Tracker</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --accent: #00e676;
+      --accent-dim: #004d25;
+      --text: #ffffff;
+      --subtext: #a0a0a0;
+      --border: #2a2a2a;
+      --active: #29b6f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
+
+    header {
+      position: sticky; top: 0; background: rgba(30,30,30,0.95);
+      backdrop-filter: blur(8px); padding: 15px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); z-index: 10;
+    }
+    h1 { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+    .reset-btn {
+      background: transparent; border: 1px solid #ff5252; color: #ff5252;
+      padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+    .card {
+      background: var(--card); border-radius: 12px; margin-bottom: 14px;
+      padding: 14px; border: 1px solid var(--border);
+    }
+    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 10px; color: #fff; }
+
+    .set-row {
+      display: grid; grid-template-columns: 36px 1fr 1fr 1fr 44px;
+      align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .set-row:last-child { border-bottom: none; }
+    .set-row.completed { opacity: 0.4; text-decoration: line-through; }
+
+    .set-num { color: var(--subtext); font-weight: bold; }
+    .val-box { background: #2a2a2a; border-radius: 6px; padding: 6px 8px; text-align: center; }
+    .val-label { font-size: 0.65rem; color: var(--subtext); display: block; }
+    .val-input { width: 100%; background: transparent; border: none; color: #fff; text-align: center; font-size: 0.95rem; font-weight: 600; }
+
+    .check-btn {
+      width: 38px; height: 38px; border-radius: 8px; border: 2px solid var(--accent);
+      background: transparent; color: var(--accent); font-size: 1.2rem;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .completed .check-btn { background: var(--accent); color: #000; }
+
+    .cardno-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+    .note { font-size: 0.85rem; color: var(--subtext); }
+
+    /* Floating Rest Timer Footer */
+    #timer-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #1e293b; border-top: 2px solid var(--active);
+      padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
+      z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+    }
+    .timer-info { display: flex; flex-direction: column; }
+    .timer-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; }
+    .timer-time { font-size: 1.6rem; font-weight: 800; color: var(--active); font-mono: monospace; }
+    .timer-controls { display: flex; gap: 8px; }
+    .btn-timer {
+      background: #334155; border: none; color: white; padding: 8px 14px;
+      border-radius: 6px; font-weight: 600; cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-<div class="app">
-  <div class="top">
-    <div><h1>Workout Log</h1><div class="sub">Вес · повторения · время отдыха</div></div>
-    <button onclick="newWorkout()">＋ Новая</button>
+
+  <header>
+    <h1>Gym Tracker</h1>
+    <button class="reset-btn" onclick="resetWorkout()">Reset All</button>
+  </header>
+
+  <div class="container" id="workout-list"></div>
+
+  <div id="timer-bar">
+    <div class="timer-info">
+      <span class="timer-label" id="timer-label">Rest Timer</span>
+      <span class="timer-time" id="timer-display">00:00</span>
+    </div>
+    <div class="timer-controls">
+      <button class="btn-timer" onclick="adjustTimer(+30)">+30s</button>
+      <button class="btn-timer" onclick="stopTimer()">Skip</button>
+    </div>
   </div>
 
-  <div class="tabs">
-    <button id="tabWorkout" class="active" onclick="showTab('workout')">Тренировка</button>
-    <button id="tabHistory" onclick="showTab('history')">История</button>
-  </div>
+  <script>
+    const defaultData = [
+      {
+        name: "Warmup Walk",
+        cardio: true,
+        text: "Light walking - 5 min"
+      },
+      {
+        name: "Hip Thrust",
+        sets: [
+          { weight: 0, reps: 10, pause: 180, done: false, note: "" },
+          { weight: 20, reps: 8, pause: 180, done: false, note: "+10+10" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "+5+5" },
+          { weight: 40, reps: 8, pause: 180, done: false, note: "+5+5" },
+          { weight: 40, reps: 6, pause: 180, done: false, note: "" },
+          { weight: 35, reps: 8, pause: 180, done: false, note: "" }
+        ]
+      },
+      {
+        name: "Smith Machine",
+        sets: [
+          { weight: 10, reps: 5, pause: 60, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+        ]
+      },
+      {
+        name: "Romanian Deadlift",
+        sets: [
+          { weight: 10, reps: 5, pause: 60, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" },
+          { weight: 30, reps: 8, pause: 180, done: false, note: "" }
+        ]
+      },
+      {
+        name: "Bulgarian Split Squat",
+        sets: [
+          { weight: 0, reps: 8, pause: 120, done: false, note: "" },
+          { weight: 0, reps: 8, pause: 120, done: false, note: "" }
+        ]
+      },
+      {
+        name: "Abduction",
+        sets: [
+          { weight: 29, reps: 20, pause: 60, done: false, note: "" },
+          { weight: 36, reps: 20, pause: 60, done: false, note: "" },
+          { weight: 36, reps: 15, pause: 0, done: false, note: "" }
+        ]
+      },
+      {
+        name: "Cool-down Walk",
+        cardio: true,
+        text: "Walk 10min | 4km/h | 5% incline"
+      }
+    ];
 
-  <section id="workoutTab">
-    <div class="card">
-      <div class="row">
-        <input id="workoutName" placeholder="Название тренировки" value="Glutes">
-        <button class="primary" onclick="saveWorkout()">Сохранить</button>
-      </div>
-      <div class="timerbox">
-        <div><div class="small">Общее время</div><div class="timer" id="workoutTimer">00:00:00</div></div>
-        <button onclick="toggleWorkoutTimer()" id="workoutTimerBtn">▶ Старт</button>
-      </div>
-    </div>
+    let workoutData = JSON.parse(localStorage.getItem('workoutData')) || defaultData;
+    let timerInterval = null;
+    let secondsLeft = 0;
+    let audioCtx = null;
 
-    <div id="exercises"></div>
-    <button class="primary" style="width:100%;margin-top:4px" onclick="addExercise()">＋ Добавить упражнение</button>
-  </section>
+    function saveState() {
+      localStorage.setItem('workoutData', JSON.stringify(workoutData));
+    }
 
-  <section id="historyTab" style="display:none">
-    <div class="card">
-      <div class="row between"><b>История тренировок</b><button class="danger" onclick="clearHistory()">Очистить</button></div>
-    </div>
-    <div id="history"></div>
-  </section>
-</div>
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
 
-<script>
-const KEY='workout-log-v1';
-let state={workout:{name:'Glutes',startedAt:null,elapsed:0,running:false,exercises:[]},history:[]};
-let timerInterval=null, restTimers={};
+    function beep() {
+      initAudio();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.8);
 
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x)state=x}catch(e){}}
-function persist(){localStorage.setItem(KEY,JSON.stringify(state))}
-function fmt(sec){sec=Math.max(0,Math.floor(sec));let h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return [h,m,s].map((v,i)=>i?String(v).padStart(2,'0'):String(v).padStart(2,'0')).join(':')}
-function fmtRest(sec){sec=Math.max(0,Math.floor(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')}
-function showTab(t){
- document.getElementById('workoutTab').style.display=t==='workout'?'':'none';
- document.getElementById('historyTab').style.display=t==='history'?'':'none';
- document.getElementById('tabWorkout').classList.toggle('active',t==='workout');
- document.getElementById('tabHistory').classList.toggle('active',t==='history');
- if(t==='history')renderHistory();
-}
-function addExercise(name='New exercise'){
- state.workout.exercises.push({name,sets:[]});
- persist();render();
-}
-function addSet(ei){
- const ex=state.workout.exercises[ei];
- const prev=ex.sets[ex.sets.length-1];
- ex.sets.push({weight:prev?.weight||'',reps:prev?.reps||'',done:false,rest:null,completedAt:null});
- persist();render();
-}
-function deleteExercise(ei){state.workout.exercises.splice(ei,1);persist();render()}
-function deleteSet(ei,si){state.workout.exercises[ei].sets.splice(si,1);persist();render()}
-function updateEx(ei,v){state.workout.exercises[ei].name=v;persist()}
-function updateSet(ei,si,key,v){state.workout.exercises[ei].sets[si][key]=v;persist()}
-function completeSet(ei,si){
- const set=state.workout.exercises[ei].sets[si];
- set.done=!set.done;
- if(set.done){
-   set.completedAt=Date.now();
-   if(si>0 && state.workout.exercises[ei].sets[si-1].completedAt)
-      set.rest=Math.max(0,Math.round((set.completedAt-state.workout.exercises[ei].sets[si-1].completedAt)/1000));
-   startRest(ei,si);
- } else {set.completedAt=null;set.rest=null}
- persist();render();
-}
-function startRest(ei,si){
- // The rest timer starts after completing a set and is reset when the next set is completed.
- restTimers[ei+':'+si]={start:Date.now()};
-}
-function render(){
- document.getElementById('workoutName').value=state.workout.name||'';
- const box=document.getElementById('exercises');box.innerHTML='';
- state.workout.exercises.forEach((ex,ei)=>{
-  const card=document.createElement('div');card.className='card';
-  card.innerHTML=`<div class="exercise-head"><input value="${esc(ex.name)}" oninput="updateEx(${ei},this.value)"><button class="danger" onclick="deleteExercise(${ei})">✕</button></div>
-  <div class="set"><div class="small">#</div><div class="small">Вес, кг</div><div class="small">Повт.</div><div class="small">Отдых</div><div></div></div>`;
-  ex.sets.forEach((s,si)=>{
-   const row=document.createElement('div');row.className='set';
-   row.innerHTML=`<div class="setnum">${si+1}</div>
-   <input type="number" step="0.5" placeholder="—" value="${s.weight??''}" oninput="updateSet(${ei},${si},'weight',this.value)">
-   <input type="number" step="1" placeholder="—" value="${s.reps??''}" oninput="updateSet(${ei},${si},'reps',this.value)">
-   <div class="rest">${si===0?'—':(s.rest!=null?fmtRest(s.rest):liveRest(${ei},${si}))}</div>
-   <button class="${s.done?'check':''}" onclick="completeSet(${ei},${si})">${s.done?'✓':'○'}</button>`;
-   card.appendChild(row);
-  });
-  const add=document.createElement('button');add.className='addset';add.textContent='＋ Добавить подход';add.onclick=()=>addSet(ei);card.appendChild(add);
-  box.appendChild(card);
- });
- document.getElementById('workoutTimer').textContent=fmt(currentWorkoutElapsed());
-}
-function liveRest(ei,si){
- const prev=state.workout.exercises[ei].sets[si-1];
- if(prev?.done && prev.completedAt){return fmtRest((Date.now()-prev.completedAt)/1000)}
- return '—';
-}
-function currentWorkoutElapsed(){
- if(!state.workout.startedAt)return state.workout.elapsed||0;
- return (state.workout.elapsed||0)+Math.floor((Date.now()-state.workout.startedAt)/1000);
-}
-function toggleWorkoutTimer(){
- if(state.workout.running){
-  state.workout.elapsed=currentWorkoutElapsed();state.workout.startedAt=null;state.workout.running=false;
- }else{
-  state.workout.startedAt=Date.now();state.workout.running=true;
- }
- persist();updateTimerButton();
-}
-function updateTimerButton(){document.getElementById('workoutTimerBtn').textContent=state.workout.running?'⏸ Пауза':'▶ Старт'}
-function saveWorkout(){
- state.workout.elapsed=currentWorkoutElapsed();state.workout.startedAt=null;state.workout.running=false;
- state.history.unshift({...JSON.parse(JSON.stringify(state.workout)),date:new Date().toISOString()});
- persist();updateTimerButton();alert('Тренировка сохранена');
-}
-function newWorkout(){
- state.workout={name:'',startedAt:null,elapsed:0,running:false,exercises:[]};restTimers={};
- addExercise('Smith / Hip thrust');
- addSet(0);render();
-}
-function renderHistory(){
- const h=document.getElementById('history');
- if(!state.history.length){h.innerHTML='<div class="empty">Пока нет сохранённых тренировок.</div>';return}
- h.innerHTML=state.history.map((w,i)=>{
-  const date=new Date(w.date).toLocaleString('ru-RU',{dateStyle:'medium',timeStyle:'short'});
-  const sets=w.exercises.reduce((a,e)=>a+e.sets.length,0);
-  const vol=w.exercises.reduce((a,e)=>a+e.sets.reduce((b,s)=>b+(Number(s.weight)||0)*(Number(s.reps)||0),0),0);
-  return `<div class="card history-item"><div class="row between"><b>${esc(w.name||'Тренировка')}</b><button class="danger" onclick="deleteHistory(${i})">✕</button></div>
-  <div class="small">${date} · ${sets} подходов · ${Math.round(vol)} кг объёма · ${fmt(w.elapsed||0)}</div>
-  ${w.exercises.map(e=>`<div style="margin-top:10px"><b>${esc(e.name)}</b><div class="small">${e.sets.map((s,j)=>`${j+1}: ${s.weight||'—'} кг × ${s.reps||'—'}${s.rest!=null?' · отдых '+fmtRest(s.rest):''}`).join(' | ')}</div></div>`).join('')}
-  </div>`
- }).join('');
-}
-function deleteHistory(i){state.history.splice(i,1);persist();renderHistory()}
-function clearHistory(){if(confirm('Удалить всю историю?')){state.history=[];persist();renderHistory()}}
-function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+      if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200, 100, 400]);
+      }
+    }
 
-load();
-if(!state.workout.exercises.length){addExercise('Smith / Hip thrust');addSet(0)}
-render();updateTimerButton();
-timerInterval=setInterval(()=>{
- document.getElementById('workoutTimer').textContent=fmt(currentWorkoutElapsed());
- document.querySelectorAll('.rest').forEach(()=>{});
- if(state.workout.exercises.length) render();
-},1000);
-</script>
+    function startTimer(seconds) {
+      initAudio();
+      if (seconds <= 0) return;
+      clearInterval(timerInterval);
+      secondsLeft = seconds;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        updateTimerDisplay();
+        if (secondsLeft <= 0) {
+          clearInterval(timerInterval);
+          beep();
+          document.getElementById('timer-label').innerText = "REST DONE!";
+        }
+      }, 1000);
+    }
+
+    function adjustTimer(sec) {
+      secondsLeft = Math.max(0, secondsLeft + sec);
+      updateTimerDisplay();
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      secondsLeft = 0;
+      updateTimerDisplay();
+      document.getElementById('timer-label').innerText = "REST TIMER";
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+      const s = (secondsLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${m}:${s}`;
+      if (secondsLeft > 0) {
+        document.getElementById('timer-label').innerText = "RESTING...";
+      }
+    }
+
+    function toggleSet(exIdx, setIdx) {
+      const set = workoutData[exIdx].sets[setIdx];
+      set.done = !set.done;
+      saveState();
+      render();
+
+      if (set.done && set.pause > 0) {
+        startTimer(set.pause);
+      }
+    }
+
+    function updateVal(exIdx, setIdx, field, value) {
+      workoutData[exIdx].sets[setIdx][field] = Number(value);
+      saveState();
+    }
+
+    function resetWorkout() {
+      if (confirm("Reset current workout progress?")) {
+        workoutData = JSON.parse(JSON.stringify(defaultData));
+        saveState();
+        stopTimer();
+        render();
+      }
+    }
+
+    function render() {
+      const container = document.getElementById('workout-list');
+      container.innerHTML = '';
+
+      workoutData.forEach((ex, exIdx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        let html = `<div class="card-title">${ex.name}</div>`;
+
+        if (ex.cardio) {
+          html += `<div class="cardno-row"><span class="note">${ex.text}</span></div>`;
+        } else {
+          ex.sets.forEach((set, setIdx) => {
+            const pauseLabel = set.pause >= 60 ? `${set.pause / 60}m` : `${set.pause}s`;
+            html += `
+              <div class="set-row ${set.done ? 'completed' : ''}">
+                <span class="set-num">#${setIdx + 1}</span>
+                <div class="val-box">
+                  <span class="val-label">KG</span>
+                  <input type="number" class="val-input" value="${set.weight}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'weight', this.value)">
+                </div>
+                <div class="val-box">
+                  <span class="val-label">REPS</span>
+                  <input type="number" class="val-input" value="${set.reps}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
+                </div>
+                <div class="val-box">
+                  <span class="val-label">REST</span>
+                  <span style="font-weight:600; font-size:0.85rem">${pauseLabel}</span>
+                </div>
+                <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">
+                  ${set.done ? '✓' : ''}
+                </button>
+              </div>
+              ${set.note ? `<div class="note" style="padding-left: 44px; margin-top:-2px;">Note: ${set.note}</div>` : ''}
+            `;
+          });
+        }
+
+        card.innerHTML = html;
+        container.appendChild(card);
+      });
+    }
+
+    render();
+  </script>
 </body>
 </html>
