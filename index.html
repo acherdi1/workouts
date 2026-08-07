@@ -29,14 +29,19 @@
     .header-top { display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     
-    .sync-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    /* Sync Bar now inside History page */
+    .sync-bar { 
+      display: flex; gap: 8px; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; background: #1a1a1a; padding: 10px 12px;
+      border-radius: 10px; border: 1px solid var(--border); margin-bottom: 14px;
+    }
     .sync-status {
-      font-size: 0.7rem; color: #60a5fa; background: #1e3a8a;
-      padding: 4px 8px; border-radius: 12px; border: 1px solid #2563eb;
+      font-size: 0.75rem; color: #60a5fa; background: #1e3a8a;
+      padding: 4px 10px; border-radius: 12px; border: 1px solid #2563eb; font-weight: 600;
     }
     .btn-file {
-      background: #334155; color: #fff; border: 1px solid var(--border); padding: 4px 8px;
-      border-radius: 8px; font-size: 0.7rem; font-weight: 600; cursor: pointer;
+      background: #334155; color: #fff; border: 1px solid var(--border); padding: 6px 10px;
+      border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
 
     .nav-tabs { display: flex; gap: 6px; background: #2a2a2a; padding: 3px; border-radius: 8px; }
@@ -133,20 +138,13 @@
   <!-- Firebase Web SDK Compat Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
   <header>
     <div class="header-top">
-      <div>
-        <h1>Gym Tracker</h1>
-        <div class="sync-bar">
-          <span class="sync-status" id="sync-status">🔥 Firebase: Initializing...</span>
-          <button class="btn-file" onclick="exportToFile()">📥 Export JSON</button>
-          <button class="btn-file" onclick="document.getElementById('file-input').click()">📤 Import JSON</button>
-          <input type="file" id="file-input" style="display:none" accept=".json" onchange="importFromFile(event)">
-        </div>
-      </div>
+      <h1>Gym Tracker</h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -167,6 +165,16 @@
   </div>
 
   <div class="container" id="view-history" style="display: none;">
+    <!-- Sync & File Actions (Only visible on History Tab) -->
+    <div class="sync-bar">
+      <span class="sync-status" id="sync-status">🔥 Firebase: Initializing...</span>
+      <div>
+        <button class="btn-file" onclick="exportToFile()">📥 Export JSON</button>
+        <button class="btn-file" onclick="document.getElementById('file-input').click()">📤 Import JSON</button>
+        <input type="file" id="file-input" style="display:none" accept=".json" onchange="importFromFile(event)">
+      </div>
+    </div>
+    
     <div id="history-list"></div>
   </div>
 
@@ -183,26 +191,26 @@
 
   <script>
     // ==========================================
-    // 1. PASTE YOUR FIREBASE CONFIG HERE
+    // 1. FIREBASE CONFIGURATION
     // ==========================================
     const firebaseConfig = {
-      apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",
-      authDomain: "workouts-json.firebaseapp.com",
-      databaseURL: "https://workouts-json-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "workouts-json",
-      storageBucket: "workouts-json.firebasestorage.app",
-      messagingSenderId: "103790271171",
-      appId: "1:103790271171:web:4ea41ee83a566526bea076"
-};
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
 
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const dbRef = db.ref('gymTrackerData');
+    
+    // Authenticate anonymously
+    firebase.auth().signInAnonymously().catch(err => console.error("Auth error:", err));
 
     // ==========================================
-    // 2. DEFAULT WORKOUT DATA & STATE
+    // 2. DEFAULT WORKOUT DATA & STATE (IN MINUTES)
     // ==========================================
     const defaultTemplates = {
       "Pull-ups": [
@@ -266,7 +274,7 @@
           sets: [
             { weight: 29, reps: 20, pause: 1, done: false, note: "" },
             { weight: 36, reps: 20, pause: 1, done: false, note: "" },
-            { weight: 36, reps: 15, pause: 0, done: false, note: "" }
+            { weight: 36, reps: 15, pause: 1, done: false, note: "" }
           ]
         },
         { name: "Cool-down Walk", cardio: true, text: "Walk 10min | 4km/h | 5% incline" }
@@ -321,8 +329,27 @@
     };
 
     let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
-    let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Pull-ups';
+    let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Glutes A';
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+
+    // Automatic migration helper: converts legacy rest seconds (e.g. 60, 180) to minutes (1, 3)
+    function sanitizePauseUnits() {
+      let modified = false;
+      Object.keys(workoutTemplates).forEach(key => {
+        workoutTemplates[key].forEach(ex => {
+          if (ex.sets) {
+            ex.sets.forEach(s => {
+              if (s.pause >= 15) { // If pause is in seconds (e.g., 60, 120, 180)
+                s.pause = Math.round((s.pause / 60) * 10) / 10;
+                modified = true;
+              }
+            });
+          }
+        });
+      });
+      if (modified) saveState();
+    }
+    sanitizePauseUnits();
 
     let timerInterval = null;
     let secondsLeft = 0;
@@ -343,7 +370,7 @@
         updatedAt: Date.now()
       };
 
-      dbRef.set(payload).then(() => {
+      db.ref('gymTrackerData').set(payload).then(() => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
       }).catch((err) => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Sync Error";
@@ -351,30 +378,35 @@
       });
     }
 
-    // Realtime Listener
-    dbRef.on('value', (snapshot) => {
-      const data = snapshot.val();
-      const statusEl = document.getElementById('sync-status');
+    // Realtime Listener after Auth
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        db.ref('gymTrackerData').on('value', (snapshot) => {
+          const data = snapshot.val();
+          const statusEl = document.getElementById('sync-status');
 
-      if (data) {
-        isRemoteUpdate = true;
-        if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
-        if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
-        if (data.workoutHistory) workoutHistory = data.workoutHistory;
+          if (data) {
+            isRemoteUpdate = true;
+            if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
+            if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
+            if (data.workoutHistory) workoutHistory = data.workoutHistory;
 
-        localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
-        localStorage.setItem('activeTemplateKey', activeTemplateKey);
-        localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+            sanitizePauseUnits();
 
-        renderTracker();
-        if (document.getElementById('view-history').style.display !== 'none') {
-          renderHistory();
-        }
-        if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
-        isRemoteUpdate = false;
-      } else {
-        // First run on clean DB: seed with default data
-        syncToFirebase();
+            localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
+            localStorage.setItem('activeTemplateKey', activeTemplateKey);
+            localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+
+            renderTracker();
+            if (document.getElementById('view-history').style.display !== 'none') {
+              renderHistory();
+            }
+            if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
+            isRemoteUpdate = false;
+          } else {
+            syncToFirebase();
+          }
+        });
       }
     });
 
@@ -646,7 +678,6 @@
       }
     }
 
-    /* Shared File Export & Import Fallbacks */
     function exportToFile() {
       const data = {
         workoutTemplates,
@@ -674,6 +705,7 @@
             activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
             workoutHistory = data.workoutHistory || [];
 
+            sanitizePauseUnits();
             saveState();
             renderTracker();
             if (document.getElementById('view-history').style.display !== 'none') {
