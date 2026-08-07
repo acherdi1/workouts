@@ -32,11 +32,7 @@
     .sync-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .sync-status {
       font-size: 0.7rem; color: #60a5fa; background: #1e3a8a;
-      padding: 4px 8px; border-radius: 12px; cursor: pointer; border: 1px solid #2563eb;
-    }
-    .btn-sync {
-      background: #2563eb; color: #fff; border: none; padding: 4px 8px;
-      border-radius: 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+      padding: 4px 8px; border-radius: 12px; border: 1px solid #2563eb;
     }
     .btn-file {
       background: #334155; color: #fff; border: 1px solid var(--border); padding: 4px 8px;
@@ -133,6 +129,10 @@
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
   </style>
+
+  <!-- Firebase Web SDK Compat Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -141,10 +141,9 @@
       <div>
         <h1>Gym Tracker</h1>
         <div class="sync-bar">
-          <span class="sync-status" id="sync-status" onclick="setCloudSyncId()" title="Click to change Sync ID">☁️ Sync ID: default</span>
-          <button class="btn-sync" onclick="fetchFromCloud()">⚡ Cloud Sync</button>
-          <button class="btn-file" onclick="exportToFile()">📥 Export File</button>
-          <button class="btn-file" onclick="document.getElementById('file-input').click()">📤 Import File</button>
+          <span class="sync-status" id="sync-status">🔥 Firebase: Initializing...</span>
+          <button class="btn-file" onclick="exportToFile()">📥 Export JSON</button>
+          <button class="btn-file" onclick="document.getElementById('file-input').click()">📤 Import JSON</button>
           <input type="file" id="file-input" style="display:none" accept=".json" onchange="importFromFile(event)">
         </div>
       </div>
@@ -183,6 +182,28 @@
   </div>
 
   <script>
+    // ==========================================
+    // 1. PASTE YOUR FIREBASE CONFIG HERE
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",
+      authDomain: "workouts-json.firebaseapp.com",
+      databaseURL: "https://workouts-json-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "workouts-json",
+      storageBucket: "workouts-json.firebasestorage.app",
+      messagingSenderId: "103790271171",
+      appId: "1:103790271171:web:4ea41ee83a566526bea076"
+};
+
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const dbRef = db.ref('gymTrackerData');
+
+    // ==========================================
+    // 2. DEFAULT WORKOUT DATA & STATE
+    // ==========================================
     const defaultTemplates = {
       "Pull-ups": [
         { name: "Warmup", cardio: true, text: "Warmup routine" },
@@ -190,7 +211,7 @@
           name: "Pull-ups (Bodyweight)",
           sets: [
             { weight: 0, reps: 5, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders dow chest front only chin over, no more" }
+            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders down chest front only chin over" }
           ]
         },
         {
@@ -199,22 +220,6 @@
             { weight: 15, reps: 5, pause: 3, done: false, note: "" },
             { weight: 15, reps: 5, pause: 3, done: false, note: "" },
             { weight: 15, reps: 5, pause: 3, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Exercise forehead+weights?",
-          sets: [
-            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 5, pause: 2, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Ex on serpente",
-          sets: [
-            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" },
-            { weight: 0, reps: 3, pause: 2, done: false, note: "up chest per elbows in!! With a ladder" }
           ]
         }
       ],
@@ -315,181 +320,76 @@
       ]
     };
 
-    let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || {};
-    
-    // Auto-Migrate any legacy rest times > 15 from seconds to minutes
-    Object.keys(workoutTemplates).forEach(tName => {
-      workoutTemplates[tName].forEach(ex => {
-        if (ex.sets) {
-          ex.sets.forEach(s => {
-            if (s.pause > 15) {
-              s.pause = Math.round((s.pause / 60) * 10) / 10;
-            }
-          });
-        }
-      });
-    });
-
-    if (!workoutTemplates["Pull-ups"]) {
-      workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
-    }
-    for (let k in defaultTemplates) {
-      if (!workoutTemplates[k]) workoutTemplates[k] = defaultTemplates[k];
-    }
-
+    let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Pull-ups';
-    if (!workoutTemplates[activeTemplateKey]) activeTemplateKey = 'Pull-ups';
-
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
-    let cloudSyncId = localStorage.getItem('cloudSyncId') || 'my-gym-tracker-sync';
-    
+
     let timerInterval = null;
     let secondsLeft = 0;
     let audioCtx = null;
+    let isRemoteUpdate = false;
 
-    /* Reliable Cloud Sync Engine (JSONBin / KV Storage) */
-    const SYNC_URL = 'https://api.jsonbin.io/v3/b';
-
-    async function pushToCloud() {
+    // ==========================================
+    // 3. FIREBASE REALTIME SYNC ENGINE
+    // ==========================================
+    function syncToFirebase() {
       const statusEl = document.getElementById('sync-status');
-      if (statusEl) statusEl.innerText = `☁️ Saving... (${cloudSyncId})`;
-      const data = {
+      if (statusEl) statusEl.innerText = "🔥 Firebase: Saving...";
+      
+      const payload = {
         workoutTemplates,
         activeTemplateKey,
         workoutHistory,
         updatedAt: Date.now()
       };
-      
-      try {
-        let binId = localStorage.getItem(`bin_id_${cloudSyncId}`);
-        let method = binId ? 'PUT' : 'POST';
-        let url = binId ? `${SYNC_URL}/${binId}` : SYNC_URL;
 
-        const res = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Bin-Private': 'false',
-            'X-Bin-Name': cloudSyncId
-          },
-          body: JSON.stringify(data)
-        });
-
-        if (res.ok) {
-          const resData = await res.json();
-          if (resData.metadata && resData.metadata.id) {
-            localStorage.setItem(`bin_id_${cloudSyncId}`, resData.metadata.id);
-          }
-          if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
-        } else {
-          if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
-        }
-      } catch (err) {
-        if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
-      }
+      dbRef.set(payload).then(() => {
+        if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
+      }).catch((err) => {
+        if (statusEl) statusEl.innerText = "🔥 Firebase: Sync Error";
+        console.error("Firebase sync error:", err);
+      });
     }
 
-    async function fetchFromCloud() {
+    // Realtime Listener
+    dbRef.on('value', (snapshot) => {
+      const data = snapshot.val();
       const statusEl = document.getElementById('sync-status');
-      let binId = localStorage.getItem(`bin_id_${cloudSyncId}`);
-      if (!binId) {
-        pushToCloud();
-        return;
-      }
 
-      if (statusEl) statusEl.innerText = `☁️ Syncing... (${cloudSyncId})`;
-      try {
-        const res = await fetch(`${SYNC_URL}/${binId}/latest`);
-        if (!res.ok) throw new Error("Cloud fetch error");
-        const resData = await res.json();
-        const data = resData.record;
+      if (data) {
+        isRemoteUpdate = true;
+        if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
+        if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
+        if (data.workoutHistory) workoutHistory = data.workoutHistory;
 
-        if (data && data.workoutTemplates) {
-          workoutTemplates = data.workoutTemplates;
-          if (!workoutTemplates["Pull-ups"]) workoutTemplates["Pull-ups"] = defaultTemplates["Pull-ups"];
-          activeTemplateKey = data.activeTemplateKey || 'Pull-ups';
-          workoutHistory = data.workoutHistory || [];
-          
-          localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
-          localStorage.setItem('activeTemplateKey', activeTemplateKey);
-          localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-          
-          renderTracker();
-          if (document.getElementById('view-history').style.display !== 'none') {
-            renderHistory();
-          }
-          if (statusEl) statusEl.innerText = `☁️ Synced (${cloudSyncId})`;
+        localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
+        localStorage.setItem('activeTemplateKey', activeTemplateKey);
+        localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+
+        renderTracker();
+        if (document.getElementById('view-history').style.display !== 'none') {
+          renderHistory();
         }
-      } catch (err) {
-        if (statusEl) statusEl.innerText = `☁️ Offline / Local`;
+        if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
+        isRemoteUpdate = false;
+      } else {
+        // First run on clean DB: seed with default data
+        syncToFirebase();
       }
-    }
+    });
 
-    function setCloudSyncId() {
-      const input = prompt("Enter your shared Sync Key (e.g., myworkout123):\nUse the exact same Sync Key on Phone and PC to keep them connected!", cloudSyncId);
-      if (input && input.trim() !== "") {
-        cloudSyncId = input.trim().replace(/[^a-zA-Z0-9_-]/g, "");
-        localStorage.setItem('cloudSyncId', cloudSyncId);
-        fetchFromCloud();
-      }
-    }
-
-    /* Shared File Export & Import Functions */
-    function exportToFile() {
-      const data = {
-        workoutTemplates,
-        activeTemplateKey,
-        workoutHistory,
-        exportDate: new Date().toISOString()
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `workout_data.json`;
-      a.click();
-    }
-
-    function importFromFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data && data.workoutTemplates) {
-            workoutTemplates = data.workoutTemplates;
-            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
-            workoutHistory = data.workoutHistory || [];
-
-            saveTemplates();
-            saveHistoryState();
-            renderTracker();
-            if (document.getElementById('view-history').style.display !== 'none') {
-              renderHistory();
-            }
-            alert("Workout data imported successfully!");
-          } else {
-            alert("Invalid workout data file structure.");
-          }
-        } catch (err) {
-          alert("Error parsing JSON file.");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function saveTemplates() {
+    function saveState() {
       localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
       localStorage.setItem('activeTemplateKey', activeTemplateKey);
-      pushToCloud();
-    }
-
-    function saveHistoryState() {
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-      pushToCloud();
+      if (!isRemoteUpdate) {
+        syncToFirebase();
+      }
     }
 
+    // ==========================================
+    // 4. UI AND CORE APP FUNCTIONS
+    // ==========================================
     function switchTab(tab) {
       document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
       document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
@@ -501,7 +401,7 @@
 
     function changeTemplate(name) {
       activeTemplateKey = name;
-      saveTemplates();
+      saveState();
       renderTracker();
     }
 
@@ -514,8 +414,7 @@
             { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 2, done: false, note: "" }] }
           ];
           activeTemplateKey = trimmed;
-          saveTemplates();
-          renderTemplateSelect();
+          saveState();
           renderTracker();
         } else {
           alert("A template with this name already exists!");
@@ -535,8 +434,7 @@
         workoutTemplates[trimmed] = workoutTemplates[oldName];
         delete workoutTemplates[oldName];
         activeTemplateKey = trimmed;
-        saveTemplates();
-        renderTemplateSelect();
+        saveState();
         renderTracker();
       }
     }
@@ -609,7 +507,7 @@
     function toggleSet(exIdx, setIdx) {
       const set = workoutTemplates[activeTemplateKey][exIdx].sets[setIdx];
       set.done = !set.done;
-      saveTemplates();
+      saveState();
       renderTracker();
 
       if (set.done && set.pause > 0) {
@@ -619,17 +517,17 @@
 
     function updateVal(exIdx, setIdx, field, value) {
       workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = field === 'note' ? value : Number(value);
-      saveTemplates();
+      saveState();
     }
 
     function updateCardioText(exIdx, value) {
       workoutTemplates[activeTemplateKey][exIdx].text = value;
-      saveTemplates();
+      saveState();
     }
 
     function updateExName(exIdx, value) {
       workoutTemplates[activeTemplateKey][exIdx].name = value;
-      saveTemplates();
+      saveState();
     }
 
     function moveExercise(exIdx, dir) {
@@ -639,7 +537,7 @@
       const temp = list[exIdx];
       list[exIdx] = list[targetIdx];
       list[targetIdx] = temp;
-      saveTemplates();
+      saveState();
       renderTracker();
     }
 
@@ -656,14 +554,14 @@
           sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
         });
       }
-      saveTemplates();
+      saveState();
       renderTracker();
     }
 
     function deleteExercise(exIdx) {
       if (confirm("Delete this exercise from template?")) {
         workoutTemplates[activeTemplateKey].splice(exIdx, 1);
-        saveTemplates();
+        saveState();
         renderTracker();
       }
     }
@@ -672,7 +570,7 @@
       const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
       const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
       sets.push({ ...lastSet, done: false });
-      saveTemplates();
+      saveState();
       renderTracker();
     }
 
@@ -683,7 +581,7 @@
         return;
       }
       sets.splice(setIdx, 1);
-      saveTemplates();
+      saveState();
       renderTracker();
     }
 
@@ -692,7 +590,7 @@
         workoutTemplates[activeTemplateKey].forEach(ex => {
           if (ex.sets) ex.sets.forEach(s => s.done = false);
         });
-        saveTemplates();
+        saveState();
         stopTimer();
         renderTracker();
       }
@@ -727,12 +625,12 @@
       }
 
       workoutHistory.unshift(historyEntry);
-      saveHistoryState();
 
       workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
-      saveTemplates();
+
+      saveState();
       stopTimer();
       renderTracker();
 
@@ -743,9 +641,53 @@
     function deleteHistoryItem(id) {
       if (confirm("Delete this log from history?")) {
         workoutHistory = workoutHistory.filter(item => item.id !== id);
-        saveHistoryState();
+        saveState();
         renderHistory();
       }
+    }
+
+    /* Shared File Export & Import Fallbacks */
+    function exportToFile() {
+      const data = {
+        workoutTemplates,
+        activeTemplateKey,
+        workoutHistory,
+        exportDate: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `workout_data.json`;
+      a.click();
+    }
+
+    function importFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data && data.workoutTemplates) {
+            workoutTemplates = data.workoutTemplates;
+            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
+            workoutHistory = data.workoutHistory || [];
+
+            saveState();
+            renderTracker();
+            if (document.getElementById('view-history').style.display !== 'none') {
+              renderHistory();
+            }
+            alert("Workout data imported successfully!");
+          } else {
+            alert("Invalid workout data file structure.");
+          }
+        } catch (err) {
+          alert("Error parsing JSON file.");
+        }
+      };
+      reader.readAsText(file);
     }
 
     function renderTemplateSelect() {
@@ -854,13 +796,7 @@
       `).join('');
     }
 
-    window.addEventListener('focus', fetchFromCloud);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') fetchFromCloud();
-    });
-
     renderTracker();
-    fetchFromCloud();
   </script>
 </body>
 </html>
