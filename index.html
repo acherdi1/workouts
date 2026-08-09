@@ -15,10 +15,12 @@
       --border: #2a2a2a;
       --active: #29b6f6;
       --danger: #ff5252;
+      --timer-bg: #1e293b;
+      --timer-progress: #0284c7;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 110px; }
 
     header {
       position: sticky; top: 0; background: rgba(30,30,30,0.95);
@@ -29,7 +31,6 @@
     .header-top { display: flex; justify-content: space-between; align-items: center; }
     h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
     
-    /* Sync Bar now inside History page */
     .sync-bar { 
       display: flex; gap: 8px; align-items: center; justify-content: space-between;
       flex-wrap: wrap; background: #1a1a1a; padding: 10px 12px;
@@ -61,13 +62,32 @@
       padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
 
+    /* Requirement 10: Timing summary header */
+    .timing-summary {
+      font-size: 0.78rem; color: var(--active); background: #112233;
+      padding: 6px 10px; border-radius: 6px; border: 1px solid #1e3a8a;
+      display: flex; justify-content: space-between; font-weight: 600;
+    }
+
+    /* Requirement 9: Start Workout Control Banner */
+    .start-banner {
+      background: #1e2a1e; border: 1px solid #2e5a2e; border-radius: 10px;
+      padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .start-banner.active { background: #12283a; border-color: #1e4b7a; }
+    .start-info { font-size: 0.85rem; font-weight: 600; }
+    .btn-start {
+      background: var(--accent); color: #000; border: none; padding: 8px 14px;
+      border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+    }
+
     .container { max-width: 600px; margin: 0 auto; padding: 12px; }
 
     .card {
       background: var(--card); border-radius: 12px; margin-bottom: 14px;
       padding: 14px; border: 1px solid var(--border); position: relative;
     }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .card-title { font-size: 1rem; font-weight: 700; color: #fff; }
     .card-controls { display: flex; gap: 4px; }
     .icon-btn {
@@ -77,6 +97,12 @@
     }
     .icon-btn.danger { color: var(--danger); }
 
+    /* Requirement 6: Exercise comment */
+    .ex-comment-input {
+      width: 100%; background: #161616; border: 1px solid #333; border-radius: 6px;
+      color: #7dd3fc; padding: 5px 8px; font-size: 0.78rem; margin-bottom: 10px; font-style: italic;
+    }
+
     .set-row {
       display: grid; grid-template-columns: 1fr 1fr 1fr 38px 24px;
       align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border);
@@ -84,6 +110,7 @@
     }
     .set-row:last-child { border-bottom: none; }
     .set-row.completed { opacity: 0.4; text-decoration: line-through; }
+    .set-row.disabled { opacity: 0.4; pointer-events: none; }
 
     .val-box { background: #2a2a2a; border-radius: 6px; padding: 4px 6px; text-align: center; }
     .val-label { font-size: 0.6rem; color: var(--subtext); display: block; }
@@ -115,24 +142,50 @@
       background: var(--card); border-radius: 12px; padding: 14px;
       margin-bottom: 12px; border: 1px solid var(--border);
     }
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .history-date { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+    .history-duration { font-size: 0.75rem; color: var(--subtext); margin-bottom: 8px; }
     .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
-    .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 4px; color: var(--active); }
+    .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 2px; color: var(--active); }
+    .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; }
     .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; }
 
-    /* Floating Rest Timer */
+    /* Requirement 2 & 3: Floating Rest Timer Progress Bar */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
-      background: #1e293b; border-top: 2px solid var(--active);
+      background: linear-gradient(to right, var(--timer-progress) 0%, var(--timer-bg) 0%);
+      border-top: 2px solid var(--active);
       padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+      z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: background 0.2s ease;
+    }
+    #timer-bar.timer-done {
+      border-top-color: var(--danger);
+      background: #3b1111 !important;
     }
     .timer-info { display: flex; flex-direction: column; }
-    .timer-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
+    .timer-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+    .timer-done .timer-label { color: var(--danger); }
     .timer-time { font-size: 1.5rem; font-weight: 800; color: var(--active); font-family: monospace; }
+    .timer-done .timer-time { color: var(--danger); }
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+
+    /* Requirements 5 & 7: Modal UI */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 200;
+    }
+    .modal-card {
+      background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+      padding: 20px; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .modal-title { font-weight: 700; font-size: 1.05rem; color: var(--accent); }
+    .modal-btn {
+      padding: 10px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 0.9rem;
+    }
+    .modal-btn.primary { background: var(--accent); color: #000; }
+    .modal-btn.secondary { background: #334155; color: #fff; }
+    .modal-btn.cancel { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
   </style>
 
   <!-- Firebase Web SDK Compat Libraries -->
@@ -152,20 +205,29 @@
     </div>
     <div class="template-bar" id="template-bar">
       <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
-      <button class="btn-small" onclick="createNewTemplate()">+ New</button>
+      <button class="btn-small" onclick="showNewTemplateModal()">+ New</button>
       <button class="btn-small" onclick="renameCurrentTemplate()">✎ Rename</button>
+    </div>
+    <div class="timing-summary" id="timing-summary">
+      <span>Planned Rest: <b id="sum-planned-rest">0m</b></span>
+      <span>Est. Total Workout: <b id="sum-total-workout">0m</b></span>
     </div>
   </header>
 
   <div class="container" id="view-tracker">
+    <!-- Workout Start Control Banner -->
+    <div class="start-banner" id="start-banner">
+      <div class="start-info" id="start-info">Workout Status: Not Started</div>
+      <button class="btn-start" id="btn-start-toggle" onclick="toggleWorkoutStart()">Start Workout</button>
+    </div>
+
     <div id="workout-list"></div>
-    <button class="action-btn btn-add-ex" onclick="addExercise()">+ Add Exercise</button>
+    <button class="action-btn btn-add-ex" onclick="showAddExModal()">+ Add Exercise</button>
     <button class="action-btn btn-finish" onclick="finishWorkout()">Finish & Save Workout</button>
     <button class="action-btn btn-reset" onclick="resetWorkout()">Reset Unsaved Checks</button>
   </div>
 
   <div class="container" id="view-history" style="display: none;">
-    <!-- Sync & File Actions (Only visible on History Tab) -->
     <div class="sync-bar">
       <span class="sync-status" id="sync-status">🔥 Firebase: Initializing...</span>
       <div>
@@ -178,6 +240,7 @@
     <div id="history-list"></div>
   </div>
 
+  <!-- Rest Timer Bar -->
   <div id="timer-bar">
     <div class="timer-info">
       <span class="timer-label" id="timer-label">Rest Timer</span>
@@ -189,41 +252,62 @@
     </div>
   </div>
 
+  <!-- Add Exercise Modal (Req 5) -->
+  <div class="modal-overlay" id="modal-add-ex">
+    <div class="modal-card">
+      <div class="modal-title">Add Exercise</div>
+      <button class="modal-btn primary" onclick="confirmAddExercise('strength')">Strength Exercise (Sets & Weights)</button>
+      <button class="modal-btn secondary" onclick="confirmAddExercise('warmup')">Warmup / Cardio Note</button>
+      <button class="modal-btn cancel" onclick="closeModal('modal-add-ex')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Add Template Modal (Req 7) -->
+  <div class="modal-overlay" id="modal-add-template">
+    <div class="modal-card">
+      <div class="modal-title">Create New Template</div>
+      <input type="text" id="new-template-name" class="note-input" placeholder="Template Name (e.g. Legs & Core)">
+      <button class="modal-btn primary" onclick="confirmCreateTemplate('scratch')">Create From Scratch</button>
+      <button class="modal-btn secondary" onclick="confirmCreateTemplate('duplicate')">Duplicate Current Workout</button>
+      <button class="modal-btn cancel" onclick="closeModal('modal-add-template')">Cancel</button>
+    </div>
+  </div>
+
   <script>
     // ==========================================
     // 1. FIREBASE CONFIGURATION
     // ==========================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",
-      authDomain: "workouts-json.firebaseapp.com",
-      databaseURL: "https://workouts-json-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "workouts-json",
-      storageBucket: "workouts-json.firebasestorage.app",
-      messagingSenderId: "103790271171",
-      appId: "1:103790271171:web:4ea41ee83a566526bea076"
-};
+    const firebaseConfig = {    
+      apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",    
+      authDomain: "workouts-json.firebaseapp.com",    
+      databaseURL: "https://workouts-json-default-rtdb.europe-west1.firebasedatabase.app",    
+      projectId: "workouts-json",    
+      storageBucket: "workouts-json.firebasestorage.app",    
+      messagingSenderId: "103790271171",    
+      appId: "1:103790271171:web:4ea41ee83a566526bea076"};
+
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
-    // Authenticate anonymously
     firebase.auth().signInAnonymously().catch(err => console.error("Auth error:", err));
 
     // ==========================================
-    // 2. DEFAULT WORKOUT DATA & STATE (IN MINUTES)
+    // 2. DEFAULT WORKOUT DATA & STATE
     // ==========================================
     const defaultTemplates = {
       "Pull-ups": [
-        { name: "Warmup", cardio: true, text: "Warmup routine" },
+        { name: "Warmup", cardio: true, text: "Warmup routine", comment: "" },
         {
           name: "Pull-ups (Bodyweight)",
+          comment: "",
           sets: [
             { weight: 0, reps: 5, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders down chest front only chin over" }
+            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders down chest front" }
           ]
         },
         {
           name: "Weights 15kg",
+          comment: "",
           sets: [
             { weight: 15, reps: 5, pause: 3, done: false, note: "" },
             { weight: 15, reps: 5, pause: 3, done: false, note: "" },
@@ -232,176 +316,84 @@
         }
       ],
       "Glutes A": [
-        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
+        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min", comment: "" },
         {
           name: "Hip Thrust",
+          comment: "",
           sets: [
             { weight: 0, reps: 10, pause: 3, done: false, note: "" },
             { weight: 20, reps: 8, pause: 3, done: false, note: "+10+10" },
             { weight: 30, reps: 8, pause: 3, done: false, note: "+5+5" },
-            { weight: 40, reps: 8, pause: 3, done: false, note: "+5+5" },
-            { weight: 40, reps: 6, pause: 3, done: false, note: "" },
-            { weight: 35, reps: 8, pause: 3, done: false, note: "" }
+            { weight: 40, reps: 8, pause: 3, done: false, note: "+5+5" }
           ]
-        },
-        {
-          name: "Smith Machine",
-          sets: [
-            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Romanian Deadlift",
-          sets: [
-            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Bulgarian Split Squat",
-          sets: [
-            { weight: 0, reps: 8, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 8, pause: 2, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Abduction",
-          sets: [
-            { weight: 29, reps: 20, pause: 1, done: false, note: "" },
-            { weight: 36, reps: 20, pause: 1, done: false, note: "" },
-            { weight: 36, reps: 15, pause: 1, done: false, note: "" }
-          ]
-        },
-        { name: "Cool-down Walk", cardio: true, text: "Walk 10min | 4km/h | 5% incline" }
-      ],
-      "Glutes B": [
-        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min" },
-        {
-          name: "Romanian Deadlift",
-          sets: [
-            { weight: 10, reps: 5, pause: 1, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 3, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Hip Thrust",
-          sets: [
-            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 3, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" },
-            { weight: 30, reps: 10, pause: 2.5, done: false, note: "" }
-          ]
-        },
-        {
-          name: "Leg Press (feet high & wide)",
-          sets: [
-            { weight: 0, reps: 12, pause: 2, done: false, note: "Find weight" },
-            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" },
-            { weight: 0, reps: 12, pause: 2, done: false, note: "Same weight" }
-          ]
-        },
-        {
-          name: "Reverse Lunges",
-          sets: [
-            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" },
-            { weight: 0, reps: 10, pause: 2, done: false, note: "Each leg" }
-          ]
-        },
-        {
-          name: "Abduction",
-          sets: [
-            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" },
-            { weight: 36, reps: 20, pause: 1, done: false, note: "15-20 reps" }
-          ]
-        },
-        { name: "Cool-down Walk", cardio: true, text: "Walk 15–20 min | 4 km/h | 5% incline" }
+        }
       ]
     };
 
     let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
-    let activeTemplateKey = localStorage.getItem('activeTemplateKey') || 'Glutes A';
+    let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
 
-    // Automatic migration helper: converts legacy rest seconds (e.g. 60, 180) to minutes (1, 3)
-    function sanitizePauseUnits() {
-      let modified = false;
+    // Workout state (Req 9)
+    let workoutActive = false;
+    let workoutStartTime = null;
+
+    // Timer & Background tracking state (Req 1, 2, 3, 4, 11)
+    let timerTargetEnd = null;
+    let timerTotalSec = 0;
+    let timerInterval = null;
+    let audioCtx = null;
+    let alarmPlaying = false;
+    let lastTimerEndedTime = null; // Requirement 11
+
+    // Migration / Sanitization helper
+    function sanitizeData() {
       Object.keys(workoutTemplates).forEach(key => {
         workoutTemplates[key].forEach(ex => {
+          if (ex.comment === undefined) ex.comment = "";
+          if (ex.recordedTimings === undefined) ex.recordedTimings = {};
           if (ex.sets) {
             ex.sets.forEach(s => {
-              if (s.pause >= 15) { // If pause is in seconds (e.g., 60, 120, 180)
-                s.pause = Math.round((s.pause / 60) * 10) / 10;
-                modified = true;
-              }
+              if (s.pause >= 15) s.pause = Math.round((s.pause / 60) * 10) / 10;
             });
           }
         });
       });
-      if (modified) saveState();
     }
-    sanitizePauseUnits();
+    sanitizeData();
 
-    let timerInterval = null;
-    let secondsLeft = 0;
-    let audioCtx = null;
+    // ==========================================
+    // 3. FIREBASE REALTIME SYNC
+    // ==========================================
     let isRemoteUpdate = false;
-
-    // ==========================================
-    // 3. FIREBASE REALTIME SYNC ENGINE
-    // ==========================================
     function syncToFirebase() {
       const statusEl = document.getElementById('sync-status');
       if (statusEl) statusEl.innerText = "🔥 Firebase: Saving...";
       
-      const payload = {
-        workoutTemplates,
-        activeTemplateKey,
-        workoutHistory,
-        updatedAt: Date.now()
-      };
+      const payload = { workoutTemplates, activeTemplateKey, workoutHistory, updatedAt: Date.now() };
 
       db.ref('gymTrackerData').set(payload).then(() => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
       }).catch((err) => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Sync Error";
-        console.error("Firebase sync error:", err);
       });
     }
 
-    // Realtime Listener after Auth
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         db.ref('gymTrackerData').on('value', (snapshot) => {
           const data = snapshot.val();
-          const statusEl = document.getElementById('sync-status');
-
           if (data) {
             isRemoteUpdate = true;
             if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
             if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
             if (data.workoutHistory) workoutHistory = data.workoutHistory;
 
-            sanitizePauseUnits();
-
-            localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
-            localStorage.setItem('activeTemplateKey', activeTemplateKey);
-            localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-
+            sanitizeData();
+            saveStateToLocal();
             renderTracker();
-            if (document.getElementById('view-history').style.display !== 'none') {
-              renderHistory();
-            }
-            if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
+            if (document.getElementById('view-history').style.display !== 'none') renderHistory();
+            document.getElementById('sync-status').innerText = "🔥 Firebase: Synced";
             isRemoteUpdate = false;
           } else {
             syncToFirebase();
@@ -410,145 +402,277 @@
       }
     });
 
-    function saveState() {
+    function saveStateToLocal() {
       localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
       localStorage.setItem('activeTemplateKey', activeTemplateKey);
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-      if (!isRemoteUpdate) {
-        syncToFirebase();
+    }
+
+    function saveState() {
+      saveStateToLocal();
+      if (!isRemoteUpdate) syncToFirebase();
+    }
+
+    // ==========================================
+    // 4. ACCURATE BACKGROUND REST TIMER & SOUND
+    // ==========================================
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    // Req 4: Louder & longer alarm sound
+    function playLoudAlarm() {
+      initAudio();
+      alarmPlaying = true;
+      let count = 0;
+
+      function pulse() {
+        if (!alarmPlaying || count >= 5) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.9, audioCtx.currentTime); // High volume
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+
+        if ("vibrate" in navigator) navigator.vibrate([300, 100, 300]);
+        count++;
+        setTimeout(pulse, 500);
+      }
+      pulse();
+    }
+
+    // Req 1, 2, 3: Background timer + Progress bar + Red on zero
+    function startTimer(minutes) {
+      initAudio();
+      const seconds = Math.round(minutes * 60);
+      if (seconds <= 0) return;
+
+      // Req 11: If starting a new timer after a previous one ended, measure inter-set transition delay
+      if (lastTimerEndedTime) {
+        recordInterSetTransition(lastTimerEndedTime, Date.now());
+      }
+
+      alarmPlaying = false;
+      timerTotalSec = seconds;
+      timerTargetEnd = Date.now() + (seconds * 1000);
+
+      clearInterval(timerInterval);
+      document.getElementById('timer-bar').classList.remove('timer-done');
+      document.getElementById('timer-label').innerText = "RESTING...";
+
+      updateTimerLoop();
+      timerInterval = setInterval(updateTimerLoop, 200); // High frequency check for smooth updates
+    }
+
+    function updateTimerLoop() {
+      if (!timerTargetEnd) return;
+
+      const remainingMs = timerTargetEnd - Date.now();
+      const secLeft = Math.ceil(remainingMs / 1000);
+      const timerBar = document.getElementById('timer-bar');
+
+      if (secLeft > 0) {
+        // Req 2: Progress Bar Background (light blue on dark blue)
+        const pct = Math.min(100, Math.max(0, ((timerTotalSec - secLeft) / timerTotalSec) * 100));
+        timerBar.style.background = `linear-gradient(to right, var(--timer-progress) ${pct}%, var(--timer-bg) ${pct}%)`;
+
+        const m = Math.floor(secLeft / 60).toString().padStart(2, '0');
+        const s = (secLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+      } else {
+        // Req 3: Color red when time is over
+        timerBar.classList.add('timer-done');
+        timerBar.style.background = '#3b1111';
+        document.getElementById('timer-display').innerText = "00:00";
+        document.getElementById('timer-label').innerText = "TIME IS UP!";
+
+        if (!alarmPlaying) {
+          playLoudAlarm();
+          lastTimerEndedTime = Date.now(); // Req 11: record timer end time
+        }
       }
     }
 
-    // ==========================================
-    // 4. UI AND CORE APP FUNCTIONS
-    // ==========================================
-    function switchTab(tab) {
-      document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
-      document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
-      document.getElementById('template-bar').style.display = tab === 'tracker' ? 'flex' : 'none';
-      document.getElementById('tab-tracker-btn').classList.toggle('active', tab === 'tracker');
-      document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
-      if (tab === 'history') renderHistory();
+    function adjustTimer(sec) {
+      if (!timerTargetEnd) return;
+      timerTargetEnd += sec * 1000;
+      timerTotalSec += sec;
+      updateTimerLoop();
     }
 
-    function changeTemplate(name) {
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerTargetEnd = null;
+      alarmPlaying = false;
+      const timerBar = document.getElementById('timer-bar');
+      timerBar.classList.remove('timer-done');
+      timerBar.style.background = 'var(--timer-bg)';
+      document.getElementById('timer-display').innerText = "00:00";
+      document.getElementById('timer-label').innerText = "REST TIMER";
+    }
+
+    // ==========================================
+    // 5. REQUIREMENT 10 & 11: REST & TRANSITION TIMING CALCULATIONS
+    // ==========================================
+    function recordInterSetTransition(endTime, startTime) {
+      const delayMin = (startTime - endTime) / 60000;
+      lastTimerEndedTime = null; // Reset
+
+      if (delayMin < 0.05 || delayMin > 15) return; // Ignore unrealistic delays (<3s or >15m)
+
+      const template = workoutTemplates[activeTemplateKey];
+      // Attach delay to active/last checked set exercise
+      if (template) {
+        template.forEach(ex => {
+          if (!ex.cardio && ex.sets) {
+            const activeSet = ex.sets.find(s => s.done);
+            if (activeSet) {
+              if (!ex.recordedTimings) ex.recordedTimings = {};
+              const repKey = activeSet.reps || 10;
+              if (!ex.recordedTimings[repKey]) ex.recordedTimings[repKey] = [];
+              ex.recordedTimings[repKey].push(Math.round(delayMin * 10) / 10);
+            }
+          }
+        });
+        saveState();
+        calculateWorkoutTimings();
+      }
+    }
+
+    function calculateWorkoutTimings() {
+      const currentList = workoutTemplates[activeTemplateKey] || [];
+      let totalPlannedRestMin = 0;
+      let totalEstimatedMin = 0;
+
+      currentList.forEach(ex => {
+        if (!ex.cardio && ex.sets) {
+          ex.sets.forEach(set => {
+            const pauseVal = Number(set.pause) || 0;
+            totalPlannedRestMin += pauseVal;
+            totalEstimatedMin += pauseVal;
+
+            // Req 11: Add recorded transition time associated with set reps (if available)
+            const repKey = set.reps;
+            if (ex.recordedTimings && ex.recordedTimings[repKey] && ex.recordedTimings[repKey].length > 0) {
+              const timingsArr = ex.recordedTimings[repKey];
+              const avgDelay = timingsArr.reduce((a, b) => a + b, 0) / timingsArr.length;
+              totalEstimatedMin += avgDelay;
+            }
+          });
+        }
+      });
+
+      document.getElementById('sum-planned-rest').innerText = `${Math.round(totalPlannedRestMin * 10) / 10}m`;
+      document.getElementById('sum-total-workout').innerText = `${Math.round(totalEstimatedMin * 10) / 10}m`;
+    }
+
+    // ==========================================
+    // 6. REQUIREMENT 9: WORKOUT START / STOP FLOW
+    // ==========================================
+    function toggleWorkoutStart() {
+      workoutActive = !workoutActive;
+      const banner = document.getElementById('start-banner');
+      const info = document.getElementById('start-info');
+      const btn = document.getElementById('btn-start-toggle');
+
+      if (workoutActive) {
+        workoutStartTime = new Date();
+        banner.classList.add('active');
+        info.innerText = `Active since ${workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        btn.innerText = "Cancel Workout";
+      } else {
+        workoutStartTime = null;
+        banner.classList.remove('active');
+        info.innerText = "Workout Status: Not Started";
+        btn.innerText = "Start Workout";
+      }
+      renderTracker();
+    }
+
+    // ==========================================
+    // 7. MODALS & CREATION FLOWS (Req 5 & 7)
+    // ==========================================
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function showAddExModal() { openModal('modal-add-ex'); }
+
+    function confirmAddExercise(type) {
+      closeModal('modal-add-ex');
+      const name = prompt("Enter Exercise Name:", type === 'warmup' ? "Warmup Walk" : "New Exercise");
+      if (!name) return;
+
+      if (type === 'warmup') {
+        workoutTemplates[activeTemplateKey].push({ name, cardio: true, text: "5 min warmup", comment: "" });
+      } else {
+        workoutTemplates[activeTemplateKey].push({
+          name, comment: "",
+          sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
+        });
+      }
+      saveState();
+      renderTracker();
+    }
+
+    function showNewTemplateModal() { openModal('modal-add-template'); }
+
+    function confirmCreateTemplate(mode) {
+      const nameInput = document.getElementById('new-template-name');
+      const name = nameInput.value.trim();
+      if (!name) { alert("Please enter a template name."); return; }
+      if (workoutTemplates[name]) { alert("Template already exists."); return; }
+
+      closeModal('modal-add-template');
+      nameInput.value = '';
+
+      if (mode === 'duplicate') {
+        workoutTemplates[name] = JSON.parse(JSON.stringify(workoutTemplates[activeTemplateKey]));
+      } else {
+        workoutTemplates[name] = [
+          { name: "Sample Exercise", comment: "", sets: [{ weight: 0, reps: 10, pause: 2, done: false, note: "" }] }
+        ];
+      }
+
       activeTemplateKey = name;
       saveState();
       renderTracker();
     }
 
-    function createNewTemplate() {
-      const name = prompt("Enter new workout template name:");
-      if (name && name.trim() !== '') {
-        const trimmed = name.trim();
-        if (!workoutTemplates[trimmed]) {
-          workoutTemplates[trimmed] = [
-            { name: "Sample Exercise", sets: [{ weight: 0, reps: 10, pause: 2, done: false, note: "" }] }
-          ];
-          activeTemplateKey = trimmed;
-          saveState();
-          renderTracker();
-        } else {
-          alert("A template with this name already exists!");
-        }
-      }
-    }
-
-    function renameCurrentTemplate() {
-      const oldName = activeTemplateKey;
-      const newName = prompt("Enter new name for current template:", oldName);
-      if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
-        const trimmed = newName.trim();
-        if (workoutTemplates[trimmed]) {
-          alert("A template with this name already exists!");
-          return;
-        }
-        workoutTemplates[trimmed] = workoutTemplates[oldName];
-        delete workoutTemplates[oldName];
-        activeTemplateKey = trimmed;
-        saveState();
-        renderTracker();
-      }
-    }
-
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    function beep() {
-      initAudio();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.8);
-
-      if ("vibrate" in navigator) {
-        navigator.vibrate([200, 100, 200, 100, 400]);
-      }
-    }
-
-    function startTimer(minutes) {
-      initAudio();
-      const seconds = Math.round(minutes * 60);
-      if (seconds <= 0) return;
-      clearInterval(timerInterval);
-      secondsLeft = seconds;
-      updateTimerDisplay();
-
-      timerInterval = setInterval(() => {
-        secondsLeft--;
-        updateTimerDisplay();
-        if (secondsLeft <= 0) {
-          clearInterval(timerInterval);
-          beep();
-          document.getElementById('timer-label').innerText = "REST DONE!";
-        }
-      }, 1000);
-    }
-
-    function adjustTimer(sec) {
-      secondsLeft = Math.max(0, secondsLeft + sec);
-      updateTimerDisplay();
-    }
-
-    function stopTimer() {
-      clearInterval(timerInterval);
-      secondsLeft = 0;
-      updateTimerDisplay();
-      document.getElementById('timer-label').innerText = "REST TIMER";
-    }
-
-    function updateTimerDisplay() {
-      const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-      const s = (secondsLeft % 60).toString().padStart(2, '0');
-      document.getElementById('timer-display').innerText = `${m}:${s}`;
-      if (secondsLeft > 0) {
-        document.getElementById('timer-label').innerText = "RESTING...";
-      }
-    }
-
+    // ==========================================
+    // 8. CORE TRACKER LOGIC & RENDERING
+    // ==========================================
     function toggleSet(exIdx, setIdx) {
+      if (!workoutActive) {
+        alert("Please click 'Start Workout' before completing sets!");
+        return;
+      }
+
       const set = workoutTemplates[activeTemplateKey][exIdx].sets[setIdx];
       set.done = !set.done;
-      saveState();
-      renderTracker();
 
       if (set.done && set.pause > 0) {
         startTimer(set.pause);
       }
+
+      saveState();
+      renderTracker();
     }
 
     function updateVal(exIdx, setIdx, field, value) {
       workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = field === 'note' ? value : Number(value);
+      saveState();
+      calculateWorkoutTimings();
+    }
+
+    function updateExComment(exIdx, value) {
+      workoutTemplates[activeTemplateKey][exIdx].comment = value;
       saveState();
     }
 
@@ -562,30 +686,18 @@
       saveState();
     }
 
-    function moveExercise(exIdx, dir) {
-      const list = workoutTemplates[activeTemplateKey];
-      const targetIdx = exIdx + dir;
-      if (targetIdx < 0 || targetIdx >= list.length) return;
-      const temp = list[exIdx];
-      list[exIdx] = list[targetIdx];
-      list[targetIdx] = temp;
+    function addSet(exIdx) {
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
+      sets.push({ ...lastSet, done: false });
       saveState();
       renderTracker();
     }
 
-    function addExercise() {
-      const isCardio = confirm("Click OK for Cardio/Note item, or Cancel for Weight/Strength exercise.");
-      const name = prompt("Exercise Name:", isCardio ? "Warmup Walk" : "New Exercise");
-      if (!name) return;
-
-      if (isCardio) {
-        workoutTemplates[activeTemplateKey].push({ name: name, cardio: true, text: "5 min warm-up" });
-      } else {
-        workoutTemplates[activeTemplateKey].push({
-          name: name,
-          sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
-        });
-      }
+    function deleteSet(exIdx, setIdx) {
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      if (sets.length <= 1) return alert("An exercise must have at least one set.");
+      sets.splice(setIdx, 1);
       saveState();
       renderTracker();
     }
@@ -598,23 +710,35 @@
       }
     }
 
-    function addSet(exIdx) {
-      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
-      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
-      sets.push({ ...lastSet, done: false });
+    function moveExercise(exIdx, dir) {
+      const list = workoutTemplates[activeTemplateKey];
+      const targetIdx = exIdx + dir;
+      if (targetIdx < 0 || targetIdx >= list.length) return;
+      const temp = list[exIdx];
+      list[exIdx] = list[targetIdx];
+      list[targetIdx] = temp;
       saveState();
       renderTracker();
     }
 
-    function deleteSet(exIdx, setIdx) {
-      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
-      if (sets.length <= 1) {
-        alert("An exercise must have at least one set.");
-        return;
-      }
-      sets.splice(setIdx, 1);
+    function changeTemplate(name) {
+      activeTemplateKey = name;
       saveState();
       renderTracker();
+    }
+
+    function renameCurrentTemplate() {
+      const oldName = activeTemplateKey;
+      const newName = prompt("Rename template:", oldName);
+      if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+        const trimmed = newName.trim();
+        if (workoutTemplates[trimmed]) return alert("Template name already exists!");
+        workoutTemplates[trimmed] = workoutTemplates[oldName];
+        delete workoutTemplates[oldName];
+        activeTemplateKey = trimmed;
+        saveState();
+        renderTracker();
+      }
     }
 
     function resetWorkout() {
@@ -628,109 +752,85 @@
       }
     }
 
+    // Req 8 & 9: Complete workout finish with Warmups & Duration
     function finishWorkout() {
+      if (!workoutActive && !confirm("Save workout without starting official timer?")) return;
+
+      const finishTime = new Date();
       let completedSetsCount = 0;
+
       const historyEntry = {
         id: Date.now(),
         templateName: activeTemplateKey,
-        date: new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        startTime: workoutStartTime ? workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+        endTime: finishTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: finishTime.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
         exercises: []
       };
 
       workoutTemplates[activeTemplateKey].forEach(ex => {
-        if (ex.cardio) return;
-        const doneSets = ex.sets.filter(s => s.done);
-        if (doneSets.length > 0) {
+        // Req 8: Include warmups
+        if (ex.cardio) {
           historyEntry.exercises.push({
             name: ex.name,
-            sets: doneSets.map(s => {
-              completedSetsCount++;
-              return `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest${s.note ? ' — ' + s.note : ''}`;
-            })
+            cardio: true,
+            text: ex.text,
+            comment: ex.comment || ""
           });
+        } else {
+          const doneSets = ex.sets.filter(s => s.done);
+          if (doneSets.length > 0) {
+            completedSetsCount++;
+            historyEntry.exercises.push({
+              name: ex.name,
+              comment: ex.comment || "",
+              sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest${s.note ? ' — ' + s.note : ''}`)
+            });
+          }
         }
       });
 
-      if (completedSetsCount === 0) {
-        alert("Please mark at least one set as completed before saving!");
-        return;
+      if (completedSetsCount === 0 && !historyEntry.exercises.some(e => e.cardio)) {
+        return alert("Please mark at least one set as completed before saving!");
       }
 
       workoutHistory.unshift(historyEntry);
 
+      // Reset checkmarks
       workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
 
+      workoutActive = false;
+      workoutStartTime = null;
+      document.getElementById('start-banner').classList.remove('active');
+      document.getElementById('start-info').innerText = "Workout Status: Not Started";
+      document.getElementById('btn-start-toggle').innerText = "Start Workout";
+
       saveState();
       stopTimer();
       renderTracker();
-
       alert("Workout saved to History!");
       switchTab('history');
     }
 
     function deleteHistoryItem(id) {
-      if (confirm("Delete this log from history?")) {
+      if (confirm("Delete log from history?")) {
         workoutHistory = workoutHistory.filter(item => item.id !== id);
         saveState();
         renderHistory();
       }
     }
 
-    function exportToFile() {
-      const data = {
-        workoutTemplates,
-        activeTemplateKey,
-        workoutHistory,
-        exportDate: new Date().toISOString()
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `workout_data.json`;
-      a.click();
-    }
-
-    function importFromFile(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = JSON.parse(e.target.result);
-          if (data && data.workoutTemplates) {
-            workoutTemplates = data.workoutTemplates;
-            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
-            workoutHistory = data.workoutHistory || [];
-
-            sanitizePauseUnits();
-            saveState();
-            renderTracker();
-            if (document.getElementById('view-history').style.display !== 'none') {
-              renderHistory();
-            }
-            alert("Workout data imported successfully!");
-          } else {
-            alert("Invalid workout data file structure.");
-          }
-        } catch (err) {
-          alert("Error parsing JSON file.");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    function renderTemplateSelect() {
+    // UI Rendering
+    function renderTracker() {
       const select = document.getElementById('template-select');
       select.innerHTML = Object.keys(workoutTemplates).map(name => `
         <option value="${name}" ${name === activeTemplateKey ? 'selected' : ''}>${name}</option>
       `).join('');
-    }
 
-    function renderTracker() {
-      renderTemplateSelect();
+      calculateWorkoutTimings();
+
       const container = document.getElementById('workout-list');
       container.innerHTML = '';
 
@@ -750,19 +850,22 @@
               <button class="icon-btn danger" onclick="deleteExercise(${exIdx})">✕</button>
             </div>
           </div>
+          <!-- Requirement 6: Exercise Comment Input -->
+          <input type="text" class="ex-comment-input" value="${ex.comment || ''}" 
+            placeholder="Exercise notes/comment (e.g. seat height 4)" onchange="updateExComment(${exIdx}, this.value)">
         `;
 
         if (ex.cardio) {
           html += `
             <div class="cardno-row">
               <input type="text" class="note-input" value="${ex.text}" 
-                onchange="updateCardioText(${exIdx}, this.value)" placeholder="Cardio details...">
+                onchange="updateCardioText(${exIdx}, this.value)" placeholder="Warmup details...">
             </div>
           `;
         } else {
           ex.sets.forEach((set, setIdx) => {
             html += `
-              <div class="set-row ${set.done ? 'completed' : ''}">
+              <div class="set-row ${set.done ? 'completed' : ''} ${!workoutActive ? 'disabled' : ''}">
                 <div class="val-box">
                   <span class="val-label">KG</span>
                   <input type="number" class="val-input" value="${set.weight}" 
@@ -785,7 +888,7 @@
                   onclick="deleteSet(${exIdx}, ${setIdx})">✕</button>
               </div>
               <div style="padding: 0 0 4px 0;">
-                <input type="text" class="note-input" value="${set.note || ''}" placeholder="Note (optional)"
+                <input type="text" class="note-input" value="${set.note || ''}" placeholder="Set Note (optional)"
                   onchange="updateVal(${exIdx}, ${setIdx}, 'note', this.value)">
               </div>
             `;
@@ -816,16 +919,57 @@
             <span class="history-date">${item.templateName || 'Workout'} - ${item.date}</span>
             <button class="icon-btn danger" style="width:24px; height:24px;" onclick="deleteHistoryItem(${item.id})">✕</button>
           </div>
+          <div class="history-duration">⏱️ Time: ${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'}</div>
           <div class="history-details">
             ${item.exercises.map(ex => `
-              <div class="history-ex-title">${ex.name}</div>
-              <div>
-                ${ex.sets.map(s => `<div class="history-set-line">• ${s}</div>`).join('')}
-              </div>
+              <div class="history-ex-title">${ex.name} ${ex.cardio ? '(Warmup)' : ''}</div>
+              ${ex.comment ? `<div class="history-ex-comment">Note: ${ex.comment}</div>` : ''}
+              ${ex.cardio ? `<div class="history-set-line">• ${ex.text}</div>` : ''}
+              ${ex.sets ? ex.sets.map(s => `<div class="history-set-line">• ${s}</div>`).join('') : ''}
             `).join('')}
           </div>
         </div>
       `).join('');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
+      document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
+      document.getElementById('template-bar').style.display = tab === 'tracker' ? 'flex' : 'none';
+      document.getElementById('timing-summary').style.display = tab === 'tracker' ? 'flex' : 'none';
+      document.getElementById('tab-tracker-btn').classList.toggle('active', tab === 'tracker');
+      document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+      if (tab === 'history') renderHistory();
+    }
+
+    function exportToFile() {
+      const blob = new Blob([JSON.stringify({ workoutTemplates, activeTemplateKey, workoutHistory }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `workout_data.json`;
+      a.click();
+    }
+
+    function importFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data && data.workoutTemplates) {
+            workoutTemplates = data.workoutTemplates;
+            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
+            workoutHistory = data.workoutHistory || [];
+            sanitizeData();
+            saveState();
+            renderTracker();
+            if (document.getElementById('view-history').style.display !== 'none') renderHistory();
+            alert("Workout data imported successfully!");
+          }
+        } catch (err) { alert("Error parsing JSON file."); }
+      };
+      reader.readAsText(file);
     }
 
     renderTracker();
