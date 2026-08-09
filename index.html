@@ -62,14 +62,12 @@
       padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
 
-    /* Requirement 10: Timing summary header */
     .timing-summary {
       font-size: 0.78rem; color: var(--active); background: #112233;
       padding: 6px 10px; border-radius: 6px; border: 1px solid #1e3a8a;
       display: flex; justify-content: space-between; font-weight: 600;
     }
 
-    /* Requirement 9: Start Workout Control Banner */
     .start-banner {
       background: #1e2a1e; border: 1px solid #2e5a2e; border-radius: 10px;
       padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
@@ -97,10 +95,11 @@
     }
     .icon-btn.danger { color: var(--danger); }
 
-    /* Requirement 6: Exercise comment */
-    .ex-comment-input {
+    /* Multi-line Comment / Detail Textareas */
+    .ex-comment-input, .note-textarea {
       width: 100%; background: #161616; border: 1px solid #333; border-radius: 6px;
-      color: #7dd3fc; padding: 5px 8px; font-size: 0.78rem; margin-bottom: 10px; font-style: italic;
+      color: #7dd3fc; padding: 6px 8px; font-size: 0.8rem; font-style: italic;
+      resize: vertical; min-height: 40px; font-family: inherit; margin-bottom: 8px;
     }
 
     .set-row {
@@ -110,7 +109,6 @@
     }
     .set-row:last-child { border-bottom: none; }
     .set-row.completed { opacity: 0.4; text-decoration: line-through; }
-    .set-row.disabled { opacity: 0.4; pointer-events: none; }
 
     .val-box { background: #2a2a2a; border-radius: 6px; padding: 4px 6px; text-align: center; }
     .val-label { font-size: 0.6rem; color: var(--subtext); display: block; }
@@ -123,8 +121,7 @@
     }
     .completed .check-btn { background: var(--accent); color: #000; }
 
-    .cardno-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
-    .note-input { width: 100%; background: #2a2a2a; border: 1px solid var(--border); border-radius: 6px; color: #ddd; padding: 6px 8px; font-size: 0.8rem; margin-top: 4px; }
+    .cardno-row { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
 
     .card-actions { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
     .btn-link { background: transparent; border: none; color: var(--active); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
@@ -137,7 +134,6 @@
     .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; }
     .btn-add-ex { background: #2a2a2a; color: var(--text); border: 1px dashed var(--subtext); margin-bottom: 12px; }
 
-    /* History View Styling */
     .history-item {
       background: var(--card); border-radius: 12px; padding: 14px;
       margin-bottom: 12px; border: 1px solid var(--border);
@@ -147,10 +143,9 @@
     .history-duration { font-size: 0.75rem; color: var(--subtext); margin-bottom: 8px; }
     .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
     .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 2px; color: var(--active); }
-    .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; }
-    .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; }
+    .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; white-space: pre-wrap; }
+    .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; white-space: pre-wrap; }
 
-    /* Requirement 2 & 3: Floating Rest Timer Progress Bar */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: linear-gradient(to right, var(--timer-progress) 0%, var(--timer-bg) 0%);
@@ -170,7 +165,6 @@
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
 
-    /* Requirements 5 & 7: Modal UI */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 200;
@@ -215,7 +209,6 @@
   </header>
 
   <div class="container" id="view-tracker">
-    <!-- Workout Start Control Banner -->
     <div class="start-banner" id="start-banner">
       <div class="start-info" id="start-info">Workout Status: Not Started</div>
       <button class="btn-start" id="btn-start-toggle" onclick="toggleWorkoutStart()">Start Workout</button>
@@ -252,7 +245,7 @@
     </div>
   </div>
 
-  <!-- Add Exercise Modal (Req 5) -->
+  <!-- Add Exercise Modal -->
   <div class="modal-overlay" id="modal-add-ex">
     <div class="modal-card">
       <div class="modal-title">Add Exercise</div>
@@ -262,11 +255,11 @@
     </div>
   </div>
 
-  <!-- Add Template Modal (Req 7) -->
+  <!-- Add Template Modal -->
   <div class="modal-overlay" id="modal-add-template">
     <div class="modal-card">
       <div class="modal-title">Create New Template</div>
-      <input type="text" id="new-template-name" class="note-input" placeholder="Template Name (e.g. Legs & Core)">
+      <input type="text" id="new-template-name" style="background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff;" placeholder="Template Name">
       <button class="modal-btn primary" onclick="confirmCreateTemplate('scratch')">Create From Scratch</button>
       <button class="modal-btn secondary" onclick="confirmCreateTemplate('duplicate')">Duplicate Current Workout</button>
       <button class="modal-btn cancel" onclick="closeModal('modal-add-template')">Cancel</button>
@@ -286,7 +279,6 @@
       messagingSenderId: "103790271171",    
       appId: "1:103790271171:web:4ea41ee83a566526bea076"};
 
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     firebase.auth().signInAnonymously().catch(err => console.error("Auth error:", err));
@@ -296,35 +288,21 @@
     // ==========================================
     const defaultTemplates = {
       "Pull-ups": [
-        { name: "Warmup", cardio: true, text: "Warmup routine", comment: "" },
+        { name: "Warmup Routine", cardio: true, text: "5 min shoulder mobility\nLight bands" },
         {
           name: "Pull-ups (Bodyweight)",
-          comment: "",
+          comment: "Shoulders down, chest open",
           sets: [
-            { weight: 0, reps: 5, pause: 2, done: false, note: "" },
-            { weight: 0, reps: 22, pause: 3, done: false, note: "shoulders down chest front" }
+            { weight: 0, reps: 5, pause: 2, done: false },
+            { weight: 0, reps: 22, pause: 3, done: false }
           ]
         },
         {
           name: "Weights 15kg",
           comment: "",
           sets: [
-            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 3, done: false, note: "" },
-            { weight: 15, reps: 5, pause: 3, done: false, note: "" }
-          ]
-        }
-      ],
-      "Glutes A": [
-        { name: "Warmup Walk", cardio: true, text: "Light walking - 5 min", comment: "" },
-        {
-          name: "Hip Thrust",
-          comment: "",
-          sets: [
-            { weight: 0, reps: 10, pause: 3, done: false, note: "" },
-            { weight: 20, reps: 8, pause: 3, done: false, note: "+10+10" },
-            { weight: 30, reps: 8, pause: 3, done: false, note: "+5+5" },
-            { weight: 40, reps: 8, pause: 3, done: false, note: "+5+5" }
+            { weight: 15, reps: 5, pause: 3, done: false },
+            { weight: 15, reps: 5, pause: 3, done: false }
           ]
         }
       ]
@@ -334,19 +312,17 @@
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
 
-    // Workout state (Req 9)
     let workoutActive = false;
     let workoutStartTime = null;
 
-    // Timer & Background tracking state (Req 1, 2, 3, 4, 11)
     let timerTargetEnd = null;
     let timerTotalSec = 0;
     let timerInterval = null;
     let audioCtx = null;
     let alarmPlaying = false;
-    let lastTimerEndedTime = null; // Requirement 11
+    let lastTimerEndedTime = null;
+    let wakeLock = null;
 
-    // Migration / Sanitization helper
     function sanitizeData() {
       Object.keys(workoutTemplates).forEach(key => {
         workoutTemplates[key].forEach(ex => {
@@ -354,6 +330,7 @@
           if (ex.recordedTimings === undefined) ex.recordedTimings = {};
           if (ex.sets) {
             ex.sets.forEach(s => {
+              delete s.note; // Remove old set notes
               if (s.pause >= 15) s.pause = Math.round((s.pause / 60) * 10) / 10;
             });
           }
@@ -414,14 +391,53 @@
     }
 
     // ==========================================
-    // 4. ACCURATE BACKGROUND REST TIMER & SOUND
+    // 4. REST TIMER, WAKE LOCK & NOTIFICATIONS
     // ==========================================
     function initAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    // Req 4: Louder & longer alarm sound
+    // Screen Wake Lock API (keeps screen awake during rest timer)
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.log('Wake Lock request error:', err);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release();
+        wakeLock = null;
+      }
+    }
+
+    // Request Notification Permissions
+    function requestNotificationPermission() {
+      if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+
+    function triggerLockscreenNotification() {
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification("🔥 Rest Timer Finished!", {
+            body: "Time is up! Ready for your next set.",
+            tag: "rest-timer",
+            renotify: true,
+            requireInteraction: true
+          });
+        } catch (e) {
+          console.error("Notification error:", e);
+        }
+      }
+    }
+
     function playLoudAlarm() {
       initAudio();
       alarmPlaying = true;
@@ -436,7 +452,7 @@
 
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.9, audioCtx.currentTime); // High volume
+        gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
 
         osc.start();
         osc.stop(audioCtx.currentTime + 0.4);
@@ -448,13 +464,14 @@
       pulse();
     }
 
-    // Req 1, 2, 3: Background timer + Progress bar + Red on zero
     function startTimer(minutes) {
       initAudio();
+      requestNotificationPermission();
+      requestWakeLock();
+
       const seconds = Math.round(minutes * 60);
       if (seconds <= 0) return;
 
-      // Req 11: If starting a new timer after a previous one ended, measure inter-set transition delay
       if (lastTimerEndedTime) {
         recordInterSetTransition(lastTimerEndedTime, Date.now());
       }
@@ -468,7 +485,7 @@
       document.getElementById('timer-label').innerText = "RESTING...";
 
       updateTimerLoop();
-      timerInterval = setInterval(updateTimerLoop, 200); // High frequency check for smooth updates
+      timerInterval = setInterval(updateTimerLoop, 200);
     }
 
     function updateTimerLoop() {
@@ -479,7 +496,6 @@
       const timerBar = document.getElementById('timer-bar');
 
       if (secLeft > 0) {
-        // Req 2: Progress Bar Background (light blue on dark blue)
         const pct = Math.min(100, Math.max(0, ((timerTotalSec - secLeft) / timerTotalSec) * 100));
         timerBar.style.background = `linear-gradient(to right, var(--timer-progress) ${pct}%, var(--timer-bg) ${pct}%)`;
 
@@ -487,7 +503,6 @@
         const s = (secLeft % 60).toString().padStart(2, '0');
         document.getElementById('timer-display').innerText = `${m}:${s}`;
       } else {
-        // Req 3: Color red when time is over
         timerBar.classList.add('timer-done');
         timerBar.style.background = '#3b1111';
         document.getElementById('timer-display').innerText = "00:00";
@@ -495,7 +510,8 @@
 
         if (!alarmPlaying) {
           playLoudAlarm();
-          lastTimerEndedTime = Date.now(); // Req 11: record timer end time
+          triggerLockscreenNotification();
+          lastTimerEndedTime = Date.now();
         }
       }
     }
@@ -511,6 +527,7 @@
       clearInterval(timerInterval);
       timerTargetEnd = null;
       alarmPlaying = false;
+      releaseWakeLock();
       const timerBar = document.getElementById('timer-bar');
       timerBar.classList.remove('timer-done');
       timerBar.style.background = 'var(--timer-bg)';
@@ -519,16 +536,15 @@
     }
 
     // ==========================================
-    // 5. REQUIREMENT 10 & 11: REST & TRANSITION TIMING CALCULATIONS
+    // 5. TIMING CALCULATIONS
     // ==========================================
     function recordInterSetTransition(endTime, startTime) {
       const delayMin = (startTime - endTime) / 60000;
-      lastTimerEndedTime = null; // Reset
+      lastTimerEndedTime = null;
 
-      if (delayMin < 0.05 || delayMin > 15) return; // Ignore unrealistic delays (<3s or >15m)
+      if (delayMin < 0.05 || delayMin > 15) return;
 
       const template = workoutTemplates[activeTemplateKey];
-      // Attach delay to active/last checked set exercise
       if (template) {
         template.forEach(ex => {
           if (!ex.cardio && ex.sets) {
@@ -558,7 +574,6 @@
             totalPlannedRestMin += pauseVal;
             totalEstimatedMin += pauseVal;
 
-            // Req 11: Add recorded transition time associated with set reps (if available)
             const repKey = set.reps;
             if (ex.recordedTimings && ex.recordedTimings[repKey] && ex.recordedTimings[repKey].length > 0) {
               const timingsArr = ex.recordedTimings[repKey];
@@ -574,7 +589,7 @@
     }
 
     // ==========================================
-    // 6. REQUIREMENT 9: WORKOUT START / STOP FLOW
+    // 6. WORKOUT CONTROL FLOW
     // ==========================================
     function toggleWorkoutStart() {
       workoutActive = !workoutActive;
@@ -597,7 +612,7 @@
     }
 
     // ==========================================
-    // 7. MODALS & CREATION FLOWS (Req 5 & 7)
+    // 7. MODALS
     // ==========================================
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -606,15 +621,15 @@
 
     function confirmAddExercise(type) {
       closeModal('modal-add-ex');
-      const name = prompt("Enter Exercise Name:", type === 'warmup' ? "Warmup Walk" : "New Exercise");
+      const name = prompt("Enter Exercise Name:", type === 'warmup' ? "Warmup Routine" : "New Exercise");
       if (!name) return;
 
       if (type === 'warmup') {
-        workoutTemplates[activeTemplateKey].push({ name, cardio: true, text: "5 min warmup", comment: "" });
+        workoutTemplates[activeTemplateKey].push({ name, cardio: true, text: "5 min warmup" });
       } else {
         workoutTemplates[activeTemplateKey].push({
           name, comment: "",
-          sets: [{ weight: 10, reps: 10, pause: 2, done: false, note: "" }]
+          sets: [{ weight: 10, reps: 10, pause: 2, done: false }]
         });
       }
       saveState();
@@ -636,7 +651,7 @@
         workoutTemplates[name] = JSON.parse(JSON.stringify(workoutTemplates[activeTemplateKey]));
       } else {
         workoutTemplates[name] = [
-          { name: "Sample Exercise", comment: "", sets: [{ weight: 0, reps: 10, pause: 2, done: false, note: "" }] }
+          { name: "Sample Exercise", comment: "", sets: [{ weight: 0, reps: 10, pause: 2, done: false }] }
         ];
       }
 
@@ -646,7 +661,7 @@
     }
 
     // ==========================================
-    // 8. CORE TRACKER LOGIC & RENDERING
+    // 8. CORE RENDER & TRACKER LOGIC
     // ==========================================
     function toggleSet(exIdx, setIdx) {
       if (!workoutActive) {
@@ -666,7 +681,7 @@
     }
 
     function updateVal(exIdx, setIdx, field, value) {
-      workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = field === 'note' ? value : Number(value);
+      workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = Number(value);
       saveState();
       calculateWorkoutTimings();
     }
@@ -688,7 +703,7 @@
 
     function addSet(exIdx) {
       const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
-      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2, note: "" };
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2 };
       sets.push({ ...lastSet, done: false });
       saveState();
       renderTracker();
@@ -752,7 +767,6 @@
       }
     }
 
-    // Req 8 & 9: Complete workout finish with Warmups & Duration
     function finishWorkout() {
       if (!workoutActive && !confirm("Save workout without starting official timer?")) return;
 
@@ -769,13 +783,11 @@
       };
 
       workoutTemplates[activeTemplateKey].forEach(ex => {
-        // Req 8: Include warmups
         if (ex.cardio) {
           historyEntry.exercises.push({
             name: ex.name,
             cardio: true,
-            text: ex.text,
-            comment: ex.comment || ""
+            text: ex.text
           });
         } else {
           const doneSets = ex.sets.filter(s => s.done);
@@ -784,7 +796,7 @@
             historyEntry.exercises.push({
               name: ex.name,
               comment: ex.comment || "",
-              sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest${s.note ? ' — ' + s.note : ''}`)
+              sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest`)
             });
           }
         }
@@ -796,7 +808,6 @@
 
       workoutHistory.unshift(historyEntry);
 
-      // Reset checkmarks
       workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
@@ -822,7 +833,6 @@
       }
     }
 
-    // UI Rendering
     function renderTracker() {
       const select = document.getElementById('template-select');
       select.innerHTML = Object.keys(workoutTemplates).map(name => `
@@ -850,22 +860,25 @@
               <button class="icon-btn danger" onclick="deleteExercise(${exIdx})">✕</button>
             </div>
           </div>
-          <!-- Requirement 6: Exercise Comment Input -->
-          <input type="text" class="ex-comment-input" value="${ex.comment || ''}" 
-            placeholder="Exercise notes/comment (e.g. seat height 4)" onchange="updateExComment(${exIdx}, this.value)">
         `;
 
         if (ex.cardio) {
           html += `
             <div class="cardno-row">
-              <input type="text" class="note-input" value="${ex.text}" 
-                onchange="updateCardioText(${exIdx}, this.value)" placeholder="Warmup details...">
+              <span style="font-size:0.75rem; color:var(--subtext);">Warmup / Cardio Details:</span>
+              <textarea class="note-textarea" onchange="updateCardioText(${exIdx}, this.value)" 
+                placeholder="Warmup details...">${ex.text || ''}</textarea>
             </div>
           `;
         } else {
+          html += `
+            <textarea class="ex-comment-input" placeholder="Exercise notes/comment (e.g. seat height 4)" 
+              onchange="updateExComment(${exIdx}, this.value)">${ex.comment || ''}</textarea>
+          `;
+
           ex.sets.forEach((set, setIdx) => {
             html += `
-              <div class="set-row ${set.done ? 'completed' : ''} ${!workoutActive ? 'disabled' : ''}">
+              <div class="set-row ${set.done ? 'completed' : ''}">
                 <div class="val-box">
                   <span class="val-label">KG</span>
                   <input type="number" class="val-input" value="${set.weight}" 
@@ -886,10 +899,6 @@
                 </button>
                 <button class="icon-btn danger" style="width:20px; height:20px; font-size:0.6rem;" 
                   onclick="deleteSet(${exIdx}, ${setIdx})">✕</button>
-              </div>
-              <div style="padding: 0 0 4px 0;">
-                <input type="text" class="note-input" value="${set.note || ''}" placeholder="Set Note (optional)"
-                  onchange="updateVal(${exIdx}, ${setIdx}, 'note', this.value)">
               </div>
             `;
           });
@@ -924,7 +933,7 @@
             ${item.exercises.map(ex => `
               <div class="history-ex-title">${ex.name} ${ex.cardio ? '(Warmup)' : ''}</div>
               ${ex.comment ? `<div class="history-ex-comment">Note: ${ex.comment}</div>` : ''}
-              ${ex.cardio ? `<div class="history-set-line">• ${ex.text}</div>` : ''}
+              ${ex.cardio ? `<div class="history-set-line">${ex.text}</div>` : ''}
               ${ex.sets ? ex.sets.map(s => `<div class="history-set-line">• ${s}</div>`).join('') : ''}
             `).join('')}
           </div>
