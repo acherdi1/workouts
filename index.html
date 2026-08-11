@@ -95,7 +95,6 @@
     }
     .icon-btn.danger { color: var(--danger); }
 
-    /* Multi-line Comment / Detail Textareas */
     .ex-comment-input, .note-textarea {
       width: 100%; background: #161616; border: 1px solid #333; border-radius: 6px;
       color: #7dd3fc; padding: 6px 8px; font-size: 0.8rem; font-style: italic;
@@ -142,7 +141,7 @@
     .history-date { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
     .history-duration { font-size: 0.75rem; color: var(--subtext); margin-bottom: 8px; }
     .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
-    .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 2px; color: var(--active); }
+    .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 2px; color: var(--active); display: flex; justify-content: space-between; align-items: center; }
     .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; white-space: pre-wrap; }
     .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; white-space: pre-wrap; }
 
@@ -201,10 +200,11 @@
       <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
       <button class="btn-small" onclick="showNewTemplateModal()">+ New</button>
       <button class="btn-small" onclick="renameCurrentTemplate()">✎ Rename</button>
+      <button class="btn-small" onclick="copyWorkoutAsText()">📋 Copy Text</button>
     </div>
     <div class="timing-summary" id="timing-summary">
       <span>Planned Rest: <b id="sum-planned-rest">0m</b></span>
-      <span>Est. Total Workout: <b id="sum-total-workout">0m</b></span>
+      <span>Est. Next Workout: <b id="sum-total-workout">N/A</b></span>
     </div>
   </header>
 
@@ -320,17 +320,16 @@
     let timerInterval = null;
     let audioCtx = null;
     let alarmPlaying = false;
-    let lastTimerEndedTime = null;
     let wakeLock = null;
 
     function sanitizeData() {
       Object.keys(workoutTemplates).forEach(key => {
         workoutTemplates[key].forEach(ex => {
           if (ex.comment === undefined) ex.comment = "";
-          if (ex.recordedTimings === undefined) ex.recordedTimings = {};
+          delete ex.recordedTimings; // Remove old per-set delay timing structures
           if (ex.sets) {
             ex.sets.forEach(s => {
-              delete s.note; // Remove old set notes
+              delete s.note;
               if (s.pause >= 15) s.pause = Math.round((s.pause / 60) * 10) / 10;
             });
           }
@@ -390,15 +389,18 @@
       if (!isRemoteUpdate) syncToFirebase();
     }
 
-    // ==========================================
-    // 4. REST TIMER, WAKE LOCK & NOTIFICATIONS
-    // ==========================================
+    // Keep AudioContext resumed across user interactions
     function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
+    document.addEventListener('click', initAudio);
+    document.addEventListener('touchstart', initAudio);
 
-    // Screen Wake Lock API (keeps screen awake during rest timer)
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) {
@@ -416,7 +418,6 @@
       }
     }
 
-    // Request Notification Permissions
     function requestNotificationPermission() {
       if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
         Notification.requestPermission();
@@ -445,19 +446,25 @@
 
       function pulse() {
         if (!alarmPlaying || count >= 5) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
 
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.4);
+        } catch (e) {
+          console.error("Audio synth error:", e);
+        }
 
-        if ("vibrate" in navigator) navigator.vibrate([300, 100, 300]);
+        if ("vibrate" in navigator) {
+          try { navigator.vibrate([300, 100, 300]); } catch(e){}
+        }
         count++;
         setTimeout(pulse, 500);
       }
@@ -472,11 +479,7 @@
       const seconds = Math.round(minutes * 60);
       if (seconds <= 0) return;
 
-      if (lastTimerEndedTime) {
-        recordInterSetTransition(lastTimerEndedTime, Date.now());
-      }
-
-      alarmPlaying = false;
+      alarmPlaying = false; // Always reset flag so sound triggers on every completion
       timerTotalSec = seconds;
       timerTargetEnd = Date.now() + (seconds * 1000);
 
@@ -511,7 +514,6 @@
         if (!alarmPlaying) {
           playLoudAlarm();
           triggerLockscreenNotification();
-          lastTimerEndedTime = Date.now();
         }
       }
     }
@@ -538,58 +540,36 @@
     // ==========================================
     // 5. TIMING CALCULATIONS
     // ==========================================
-    function recordInterSetTransition(endTime, startTime) {
-      const delayMin = (startTime - endTime) / 60000;
-      lastTimerEndedTime = null;
-
-      if (delayMin < 0.05 || delayMin > 15) return;
-
-      const template = workoutTemplates[activeTemplateKey];
-      if (template) {
-        template.forEach(ex => {
-          if (!ex.cardio && ex.sets) {
-            const activeSet = ex.sets.find(s => s.done);
-            if (activeSet) {
-              if (!ex.recordedTimings) ex.recordedTimings = {};
-              const repKey = activeSet.reps || 10;
-              if (!ex.recordedTimings[repKey]) ex.recordedTimings[repKey] = [];
-              ex.recordedTimings[repKey].push(Math.round(delayMin * 10) / 10);
-            }
-          }
-        });
-        saveState();
-        calculateWorkoutTimings();
-      }
-    }
-
     function calculateWorkoutTimings() {
       const currentList = workoutTemplates[activeTemplateKey] || [];
       let totalPlannedRestMin = 0;
-      let totalEstimatedMin = 0;
 
       currentList.forEach(ex => {
         if (!ex.cardio && ex.sets) {
           ex.sets.forEach(set => {
-            const pauseVal = Number(set.pause) || 0;
-            totalPlannedRestMin += pauseVal;
-            totalEstimatedMin += pauseVal;
-
-            const repKey = set.reps;
-            if (ex.recordedTimings && ex.recordedTimings[repKey] && ex.recordedTimings[repKey].length > 0) {
-              const timingsArr = ex.recordedTimings[repKey];
-              const avgDelay = timingsArr.reduce((a, b) => a + b, 0) / timingsArr.length;
-              totalEstimatedMin += avgDelay;
-            }
+            totalPlannedRestMin += (Number(set.pause) || 0);
           });
         }
       });
 
+      // Est. Next Workout is based on the total duration of the last session of this template
+      const lastSession = workoutHistory.find(h => h.templateName === activeTemplateKey);
+      let estWorkoutStr = "N/A";
+
+      if (lastSession) {
+        if (lastSession.totalDurationMin) {
+          estWorkoutStr = `${lastSession.totalDurationMin}m`;
+        } else if (lastSession.startTime && lastSession.endTime && lastSession.startTime !== 'N/A') {
+          estWorkoutStr = `${lastSession.startTime} ➔ ${lastSession.endTime}`;
+        }
+      }
+
       document.getElementById('sum-planned-rest').innerText = `${Math.round(totalPlannedRestMin * 10) / 10}m`;
-      document.getElementById('sum-total-workout').innerText = `${Math.round(totalEstimatedMin * 10) / 10}m`;
+      document.getElementById('sum-total-workout').innerText = estWorkoutStr;
     }
 
     // ==========================================
-    // 6. WORKOUT CONTROL FLOW
+    // 6. WORKOUT CONTROL FLOW & COPY
     // ==========================================
     function toggleWorkoutStart() {
       workoutActive = !workoutActive;
@@ -609,6 +589,52 @@
         btn.innerText = "Start Workout";
       }
       renderTracker();
+    }
+
+    function copyWorkoutAsText() {
+      const now = new Date();
+      const dateStr = now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const currentList = workoutTemplates[activeTemplateKey] || [];
+
+      let text = `🏋️ ${activeTemplateKey} - ${dateStr}\n`;
+      if (workoutStartTime) {
+        text += `⏱️ Time: ${workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n`;
+      }
+      text += `------------------------------\n`;
+
+      currentList.forEach((ex) => {
+        text += `\n🔹 ${ex.name}${ex.cardio ? ' (Warmup)' : ''}\n`;
+        if (ex.cardio && ex.text) {
+          text += `${ex.text}\n`;
+        } else {
+          if (ex.comment) text += `Note: ${ex.comment}\n`;
+          if (ex.sets) {
+            ex.sets.forEach((s) => {
+              text += `  • ${s.weight}kg × ${s.reps} reps | ${s.pause}m rest ${s.done ? '[✓]' : ''}\n`;
+            });
+          }
+        }
+      });
+
+      const copyAction = (text) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          return Promise.resolve();
+        }
+      };
+
+      copyAction(text).then(() => {
+        alert("Workout template copied to clipboard!");
+      }).catch(() => {
+        alert("Failed to copy text automatically.");
+      });
     }
 
     // ==========================================
@@ -669,8 +695,15 @@
         return;
       }
 
-      const set = workoutTemplates[activeTemplateKey][exIdx].sets[setIdx];
+      const ex = workoutTemplates[activeTemplateKey][exIdx];
+      const set = ex.sets[setIdx];
       set.done = !set.done;
+
+      // Track exercise start and end timestamps
+      if (set.done) {
+        if (!ex.startTime) ex.startTime = Date.now();
+        ex.endTime = Date.now();
+      }
 
       if (set.done && set.pause > 0) {
         startTimer(set.pause);
@@ -759,6 +792,8 @@
     function resetWorkout() {
       if (confirm("Reset current checkmarks?")) {
         workoutTemplates[activeTemplateKey].forEach(ex => {
+          delete ex.startTime;
+          delete ex.endTime;
           if (ex.sets) ex.sets.forEach(s => s.done = false);
         });
         saveState();
@@ -771,6 +806,8 @@
       if (!workoutActive && !confirm("Save workout without starting official timer?")) return;
 
       const finishTime = new Date();
+      const diffMs = workoutStartTime ? (finishTime - workoutStartTime) : 0;
+      const totalDurationMin = diffMs > 0 ? Math.max(1, Math.round(diffMs / 60000)) : 0;
       let completedSetsCount = 0;
 
       const historyEntry = {
@@ -778,6 +815,7 @@
         templateName: activeTemplateKey,
         startTime: workoutStartTime ? workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
         endTime: finishTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        totalDurationMin: totalDurationMin,
         date: finishTime.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
         exercises: []
       };
@@ -793,13 +831,24 @@
           const doneSets = ex.sets.filter(s => s.done);
           if (doneSets.length > 0) {
             completedSetsCount++;
+            
+            // Calculate duration spent on this exercise
+            let durationStr = "";
+            if (ex.startTime && ex.endTime) {
+              const exMin = Math.max(1, Math.round((ex.endTime - ex.startTime) / 60000));
+              durationStr = `${exMin} min`;
+            }
+
             historyEntry.exercises.push({
               name: ex.name,
               comment: ex.comment || "",
+              duration: durationStr,
               sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest`)
             });
           }
         }
+        delete ex.startTime;
+        delete ex.endTime;
       });
 
       if (completedSetsCount === 0 && !historyEntry.exercises.some(e => e.cardio)) {
@@ -928,10 +977,13 @@
             <span class="history-date">${item.templateName || 'Workout'} - ${item.date}</span>
             <button class="icon-btn danger" style="width:24px; height:24px;" onclick="deleteHistoryItem(${item.id})">✕</button>
           </div>
-          <div class="history-duration">⏱️ Time: ${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'}</div>
+          <div class="history-duration">⏱️ Time: ${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'} ${item.totalDurationMin ? `(${item.totalDurationMin}m)` : ''}</div>
           <div class="history-details">
             ${item.exercises.map(ex => `
-              <div class="history-ex-title">${ex.name} ${ex.cardio ? '(Warmup)' : ''}</div>
+              <div class="history-ex-title">
+                <span>${ex.name} ${ex.cardio ? '(Warmup)' : ''}</span>
+                ${ex.duration ? `<span style="font-size:0.75rem; color:var(--subtext); font-weight:normal;">⏱️ ${ex.duration}</span>` : ''}
+              </div>
               ${ex.comment ? `<div class="history-ex-comment">Note: ${ex.comment}</div>` : ''}
               ${ex.cardio ? `<div class="history-set-line">${ex.text}</div>` : ''}
               ${ex.sets ? ex.sets.map(s => `<div class="history-set-line">• ${s}</div>`).join('') : ''}
