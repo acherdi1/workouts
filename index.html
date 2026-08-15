@@ -14,6 +14,7 @@
       --subtext: #a0a0a0;
       --border: #2a2a2a;
       --active: #29b6f6;
+      --warning: #f59e0b;
       --danger: #ff5252;
       --timer-bg: #1e293b;
       --timer-progress: #0284c7;
@@ -145,12 +146,16 @@
     .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; white-space: pre-wrap; }
     .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; white-space: pre-wrap; }
 
+    /* Timer Bar Styles */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: linear-gradient(to right, var(--timer-progress) 0%, var(--timer-bg) 0%);
       border-top: 2px solid var(--active);
       padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: background 0.2s ease;
+      z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    #timer-bar.timer-warning {
+      border-top-color: var(--warning);
     }
     #timer-bar.timer-done {
       border-top-color: var(--danger);
@@ -158,9 +163,13 @@
     }
     .timer-info { display: flex; flex-direction: column; }
     .timer-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+    .timer-warning .timer-label { color: var(--warning); }
     .timer-done .timer-label { color: var(--danger); }
+    
     .timer-time { font-size: 1.5rem; font-weight: 800; color: var(--active); font-family: monospace; }
+    .timer-warning .timer-time { color: var(--warning); }
     .timer-done .timer-time { color: var(--danger); }
+
     .timer-controls { display: flex; gap: 8px; }
     .btn-timer { background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
 
@@ -318,6 +327,7 @@
     let timerTargetEnd = null;
     let timerTotalSec = 0;
     let timerInterval = null;
+    let activeTimerExIdx = null; // Stores exercise index attached to running timer
     let audioCtx = null;
     let alarmPlaying = false;
     let wakeLock = null;
@@ -326,7 +336,9 @@
       Object.keys(workoutTemplates).forEach(key => {
         workoutTemplates[key].forEach(ex => {
           if (ex.comment === undefined) ex.comment = "";
-          delete ex.recordedTimings; // Remove old per-set delay timing structures
+          delete ex.startTime;
+          delete ex.endTime;
+          delete ex.recordedTimings;
           if (ex.sets) {
             ex.sets.forEach(s => {
               delete s.note;
@@ -389,13 +401,27 @@
       if (!isRemoteUpdate) syncToFirebase();
     }
 
-    // Keep AudioContext resumed across user interactions
+    // ==========================================
+    // 4. AUDIO & REST TIMER LOGIC
+    // ==========================================
     function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        // Play a silent 0.01 sec buffer to keep Web Audio API unlocked on mobile browsers
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(0);
+        osc.stop(audioCtx.currentTime + 0.01);
+      } catch (e) {
+        console.error("Audio init error:", e);
       }
     }
     document.addEventListener('click', initAudio);
@@ -407,7 +433,7 @@
           wakeLock = await navigator.wakeLock.request('screen');
         }
       } catch (err) {
-        console.log('Wake Lock request error:', err);
+        console.log('Wake Lock error:', err);
       }
     }
 
@@ -471,7 +497,7 @@
       pulse();
     }
 
-    function startTimer(minutes) {
+    function startTimer(minutes, exIdx = null) {
       initAudio();
       requestNotificationPermission();
       requestWakeLock();
@@ -479,16 +505,25 @@
       const seconds = Math.round(minutes * 60);
       if (seconds <= 0) return;
 
-      alarmPlaying = false; // Always reset flag so sound triggers on every completion
+      activeTimerExIdx = exIdx;
+      alarmPlaying = false;
       timerTotalSec = seconds;
       timerTargetEnd = Date.now() + (seconds * 1000);
 
       clearInterval(timerInterval);
-      document.getElementById('timer-bar').classList.remove('timer-done');
+      const timerBar = document.getElementById('timer-bar');
+      timerBar.classList.remove('timer-done', 'timer-warning');
       document.getElementById('timer-label').innerText = "RESTING...";
 
       updateTimerLoop();
       timerInterval = setInterval(updateTimerLoop, 200);
+    }
+
+    function markTimerExerciseFinished() {
+      if (activeTimerExIdx !== null && workoutTemplates[activeTemplateKey][activeTimerExIdx]) {
+        workoutTemplates[activeTemplateKey][activeTimerExIdx].completedAt = Date.now();
+        saveState();
+      }
     }
 
     function updateTimerLoop() {
@@ -498,14 +533,30 @@
       const secLeft = Math.ceil(remainingMs / 1000);
       const timerBar = document.getElementById('timer-bar');
 
-      if (secLeft > 0) {
+      // Refresh exercise rest completion timestamp while timer runs
+      markTimerExerciseFinished();
+
+      if (secLeft > 10) {
+        timerBar.classList.remove('timer-done', 'timer-warning');
         const pct = Math.min(100, Math.max(0, ((timerTotalSec - secLeft) / timerTotalSec) * 100));
         timerBar.style.background = `linear-gradient(to right, var(--timer-progress) ${pct}%, var(--timer-bg) ${pct}%)`;
 
         const m = Math.floor(secLeft / 60).toString().padStart(2, '0');
         const s = (secLeft % 60).toString().padStart(2, '0');
         document.getElementById('timer-display').innerText = `${m}:${s}`;
+      } else if (secLeft > 0) {
+        // Yellow warning state for last 10 seconds
+        timerBar.classList.remove('timer-done');
+        timerBar.classList.add('timer-warning');
+        const pct = Math.min(100, Math.max(0, ((timerTotalSec - secLeft) / timerTotalSec) * 100));
+        timerBar.style.background = `linear-gradient(to right, var(--warning) ${pct}%, var(--timer-bg) ${pct}%)`;
+
+        const m = Math.floor(secLeft / 60).toString().padStart(2, '0');
+        const s = (secLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
       } else {
+        // Red finished state
+        timerBar.classList.remove('timer-warning');
         timerBar.classList.add('timer-done');
         timerBar.style.background = '#3b1111';
         document.getElementById('timer-display').innerText = "00:00";
@@ -526,12 +577,15 @@
     }
 
     function stopTimer() {
+      markTimerExerciseFinished();
       clearInterval(timerInterval);
       timerTargetEnd = null;
+      activeTimerExIdx = null;
       alarmPlaying = false;
       releaseWakeLock();
+
       const timerBar = document.getElementById('timer-bar');
-      timerBar.classList.remove('timer-done');
+      timerBar.classList.remove('timer-done', 'timer-warning');
       timerBar.style.background = 'var(--timer-bg)';
       document.getElementById('timer-display').innerText = "00:00";
       document.getElementById('timer-label').innerText = "REST TIMER";
@@ -552,7 +606,6 @@
         }
       });
 
-      // Est. Next Workout is based on the total duration of the last session of this template
       const lastSession = workoutHistory.find(h => h.templateName === activeTemplateKey);
       let estWorkoutStr = "N/A";
 
@@ -578,9 +631,9 @@
       const btn = document.getElementById('btn-start-toggle');
 
       if (workoutActive) {
-        workoutStartTime = new Date();
+        workoutStartTime = Date.now();
         banner.classList.add('active');
-        info.innerText = `Active since ${workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        info.innerText = `Active since ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
         btn.innerText = "Cancel Workout";
       } else {
         workoutStartTime = null;
@@ -598,7 +651,7 @@
 
       let text = `🏋️ ${activeTemplateKey} - ${dateStr}\n`;
       if (workoutStartTime) {
-        text += `⏱️ Time: ${workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n`;
+        text += `⏱️ Time: ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n`;
       }
       text += `------------------------------\n`;
 
@@ -616,12 +669,12 @@
         }
       });
 
-      const copyAction = (text) => {
+      const copyAction = (textToCopy) => {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          return navigator.clipboard.writeText(text);
+          return navigator.clipboard.writeText(textToCopy);
         } else {
           const ta = document.createElement("textarea");
-          ta.value = text;
+          ta.value = textToCopy;
           document.body.appendChild(ta);
           ta.select();
           document.execCommand("copy");
@@ -690,6 +743,8 @@
     // 8. CORE RENDER & TRACKER LOGIC
     // ==========================================
     function toggleSet(exIdx, setIdx) {
+      initAudio(); // Reactivate audio context directly on set interaction
+
       if (!workoutActive) {
         alert("Please click 'Start Workout' before completing sets!");
         return;
@@ -699,14 +754,11 @@
       const set = ex.sets[setIdx];
       set.done = !set.done;
 
-      // Track exercise start and end timestamps
       if (set.done) {
-        if (!ex.startTime) ex.startTime = Date.now();
-        ex.endTime = Date.now();
-      }
-
-      if (set.done && set.pause > 0) {
-        startTimer(set.pause);
+        ex.completedAt = Date.now();
+        if (set.pause > 0) {
+          startTimer(set.pause, exIdx);
+        }
       }
 
       saveState();
@@ -792,8 +844,7 @@
     function resetWorkout() {
       if (confirm("Reset current checkmarks?")) {
         workoutTemplates[activeTemplateKey].forEach(ex => {
-          delete ex.startTime;
-          delete ex.endTime;
+          delete ex.completedAt;
           if (ex.sets) ex.sets.forEach(s => s.done = false);
         });
         saveState();
@@ -805,20 +856,24 @@
     function finishWorkout() {
       if (!workoutActive && !confirm("Save workout without starting official timer?")) return;
 
-      const finishTime = new Date();
-      const diffMs = workoutStartTime ? (finishTime - workoutStartTime) : 0;
+      const finishTimestamp = Date.now();
+      const startTimestamp = workoutStartTime || finishTimestamp;
+      const diffMs = finishTimestamp - startTimestamp;
       const totalDurationMin = diffMs > 0 ? Math.max(1, Math.round(diffMs / 60000)) : 0;
       let completedSetsCount = 0;
 
       const historyEntry = {
-        id: Date.now(),
+        id: finishTimestamp,
         templateName: activeTemplateKey,
-        startTime: workoutStartTime ? workoutStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-        endTime: finishTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+        endTime: new Date(finishTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         totalDurationMin: totalDurationMin,
-        date: finishTime.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        date: new Date(finishTimestamp).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
         exercises: []
       };
+
+      // Calculate exercise timing: end of rest of prev exercise ➔ end of rest of current exercise
+      let previousExerciseEndTime = startTimestamp;
 
       workoutTemplates[activeTemplateKey].forEach(ex => {
         if (ex.cardio) {
@@ -832,23 +887,21 @@
           if (doneSets.length > 0) {
             completedSetsCount++;
             
-            // Calculate duration spent on this exercise
-            let durationStr = "";
-            if (ex.startTime && ex.endTime) {
-              const exMin = Math.max(1, Math.round((ex.endTime - ex.startTime) / 60000));
-              durationStr = `${exMin} min`;
-            }
+            // Current exercise end timestamp (including completed rest)
+            const currentExEndTime = ex.completedAt || Date.now();
+            const exDurationMs = currentExEndTime - previousExerciseEndTime;
+            const exDurationMin = Math.max(1, Math.round(exDurationMs / 60000));
+            previousExerciseEndTime = currentExEndTime;
 
             historyEntry.exercises.push({
               name: ex.name,
               comment: ex.comment || "",
-              duration: durationStr,
+              duration: `${exDurationMin} min`,
               sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest`)
             });
           }
         }
-        delete ex.startTime;
-        delete ex.endTime;
+        delete ex.completedAt;
       });
 
       if (completedSetsCount === 0 && !historyEntry.exercises.some(e => e.cardio)) {
