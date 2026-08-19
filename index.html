@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Workout Tracker</title>
@@ -97,12 +99,11 @@
     .ex-comment-input, .note-textarea {
       width: 100%; background: #161616; border: 1px solid #333; border-radius: 6px;
       color: #7dd3fc; padding: 6px 8px; font-size: 0.8rem; font-style: italic;
-      resize: vertical; min-height: 40px; max-height: 120px; overflow-y: auto; touch-action: pan-y;
-      font-family: inherit; margin-bottom: 8px;
+      resize: vertical; min-height: 40px; font-family: inherit; margin-bottom: 8px;
     }
 
     .set-row {
-      display: grid; grid-template-columns: 24px 1fr 1fr 1fr 36px 24px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr 38px 24px;
       align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border);
       font-size: 0.85rem;
     }
@@ -119,6 +120,8 @@
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .completed .check-btn { background: var(--accent); color: #000; }
+
+    .cardno-row { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
 
     .card-actions { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); }
     .btn-link { background: transparent; border: none; color: var(--active); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
@@ -190,7 +193,9 @@
   <!-- Firebase Web SDK Compat Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script></head><body>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
 
   <header>
     <div class="header-top">
@@ -204,7 +209,6 @@
       <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
       <button class="btn-small" onclick="showNewTemplateModal()">+ New</button>
       <button class="btn-small" onclick="renameCurrentTemplate()">✎ Rename</button>
-      <button class="btn-small" onclick="deleteCurrentTemplate()">🗑 Delete</button>
       <button class="btn-small" onclick="copyWorkoutAsText()">📋 Copy Text</button>
     </div>
     <div class="timing-summary" id="timing-summary">
@@ -271,33 +275,6 @@
     </div>
   </div>
 
-  <!-- Edit History Modal -->
-  <div class="modal-overlay" id="modal-edit-history">
-    <div class="modal-card" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
-      <div class="modal-title">✎ Edit History Entry</div>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <label style="font-size:0.75rem; color:var(--subtext);">Date & Time:
-          <input type="text" id="edit-hist-date" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
-        </label>
-        <div style="display:flex; gap:8px;">
-          <label style="flex:1; font-size:0.75rem; color:var(--subtext);">Duration (min):
-            <input type="number" id="edit-hist-duration" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
-          </label>
-          <label style="flex:2; font-size:0.75rem; color:var(--subtext);">Template / Title:
-            <input type="text" id="edit-hist-template" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
-          </label>
-        </div>
-        <div style="font-size:0.8rem; font-weight:700; color:var(--accent); margin-top:6px;">Exercises & Sets:</div>
-        <div id="edit-hist-exercises-container"></div>
-        <button class="btn-small" onclick="addHistExercise()" style="margin-bottom:8px;">+ Add Exercise to History</button>
-      </div>
-      <div style="display:flex; gap:8px; margin-top:8px;">
-        <button class="modal-btn primary" style="flex:1;" onclick="saveHistoryEdit()">Save Changes</button>
-        <button class="modal-btn cancel" style="flex:1;" onclick="closeModal('modal-edit-history')">Cancel</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     // ==========================================
     // 1. FIREBASE CONFIGURATION
@@ -344,15 +321,13 @@
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
 
-    // FIX #3: Restore active workout status and start time from LocalStorage across page refreshes
-    let workoutActive = localStorage.getItem('workoutActive') === 'true';
-    let savedStartTime = localStorage.getItem('workoutStartTime');
-    let workoutStartTime = savedStartTime ? Number(savedStartTime) : null;
+    let workoutActive = false;
+    let workoutStartTime = null;
 
     let timerTargetEnd = null;
     let timerTotalSec = 0;
     let timerInterval = null;
-    let activeTimerExIdx = null;
+    let activeTimerExIdx = null; // Stores exercise index attached to running timer
     let audioCtx = null;
     let alarmPlaying = false;
     let wakeLock = null;
@@ -375,18 +350,8 @@
     }
     sanitizeData();
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
-
     // ==========================================
-    // 3. FIREBASE REALTIME SYNC & LOCAL STORAGE
+    // 3. FIREBASE REALTIME SYNC
     // ==========================================
     let isRemoteUpdate = false;
     function syncToFirebase() {
@@ -429,12 +394,6 @@
       localStorage.setItem('workoutTemplates', JSON.stringify(workoutTemplates));
       localStorage.setItem('activeTemplateKey', activeTemplateKey);
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-      localStorage.setItem('workoutActive', workoutActive);
-      if (workoutStartTime) {
-        localStorage.setItem('workoutStartTime', workoutStartTime);
-      } else {
-        localStorage.removeItem('workoutStartTime');
-      }
     }
 
     function saveState() {
@@ -443,7 +402,7 @@
     }
 
     // ==========================================
-    // 4. AUDIO ENGINE & LOCKSCREEN FIXES (FIX #1)
+    // 4. AUDIO & REST TIMER LOGIC
     // ==========================================
     function initAudio() {
       try {
@@ -453,6 +412,7 @@
         if (audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
+        // Play a silent 0.01 sec buffer to keep Web Audio API unlocked on mobile browsers
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
@@ -467,46 +427,21 @@
     document.addEventListener('click', initAudio);
     document.addEventListener('touchstart', initAudio);
 
-    // FIX #1: Audio Data URI synth generator for lockscreen fallback
-    function createBeepWavUri(freq = 880, durationMs = 400) {
-      const sampleRate = 22050;
-      const numSamples = Math.floor(sampleRate * (durationMs / 1000));
-      const buffer = new Uint8Array(44 + numSamples);
-      const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) buffer[offset + i] = str.charCodeAt(i); };
-      const write32 = (offset, val) => {
-        buffer[offset] = val & 0xff; buffer[offset+1] = (val >> 8) & 0xff;
-        buffer[offset+2] = (val >> 16) & 0xff; buffer[offset+3] = (val >> 24) & 0xff;
-      };
-      const write16 = (offset, val) => {
-        buffer[offset] = val & 0xff; buffer[offset+1] = (val >> 8) & 0xff;
-      };
-      writeString(0, 'RIFF'); write32(4, 36 + numSamples); writeString(8, 'WAVE');
-      writeString(12, 'fmt '); write32(16, 16); write16(20, 1); write16(22, 1);
-      write32(24, sampleRate); write32(28, sampleRate); write16(32, 1); write16(34, 8);
-      writeString(36, 'data'); write32(40, numSamples);
-      for (let i = 0; i < numSamples; i++) {
-        const t = i / sampleRate;
-        const sample = Math.sin(2 * Math.PI * freq * t);
-        buffer[44 + i] = Math.floor((sample + 1) * 127.5);
-      }
-      let binary = '';
-      for (let i = 0; i < buffer.length; i++) binary += String.fromCharCode(buffer[i]);
-      return 'data:audio/wav;base64,' + btoa(binary);
-    }
-
-    const alarmAudioUriHigh = createBeepWavUri(1046.5, 350);
-    const alarmAudioUriLow = createBeepWavUri(880, 350);
-
     async function requestWakeLock() {
       try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
       } catch (err) {
         console.log('Wake Lock error:', err);
       }
     }
 
     function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
+      if (wakeLock !== null) {
+        wakeLock.release();
+        wakeLock = null;
+      }
     }
 
     function requestNotificationPermission() {
@@ -536,54 +471,31 @@
       let count = 0;
 
       function pulse() {
-        if (!alarmPlaying || count >= 6) return;
-
-        // 1. Web Audio API pulse
+        if (!alarmPlaying || count >= 5) return;
         try {
-          if (audioCtx) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
-            osc.start(audioCtx.currentTime);
-            osc.stop(audioCtx.currentTime + 0.35);
-          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.4);
         } catch (e) {
           console.error("Audio synth error:", e);
         }
 
-        // 2. HTML5 Audio fallback (works after lock screen unlock / in background)
-        try {
-          const audioEl = new Audio(count % 2 === 0 ? alarmAudioUriLow : alarmAudioUriHigh);
-          audioEl.play().catch(() => {});
-        } catch (e) {}
-
-        // 3. Vibration
         if ("vibrate" in navigator) {
           try { navigator.vibrate([300, 100, 300]); } catch(e){}
         }
-
         count++;
-        setTimeout(pulse, 450);
+        setTimeout(pulse, 500);
       }
       pulse();
     }
-
-    // FIX #1: Reactivate timer/sound when user unlocks screen or returns to page
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        if (timerTargetEnd) updateTimerLoop();
-      }
-    });
-    window.addEventListener('pageshow', () => {
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-      if (timerTargetEnd) updateTimerLoop();
-    });
 
     function startTimer(minutes, exIdx = null) {
       initAudio();
@@ -604,13 +516,13 @@
       document.getElementById('timer-label').innerText = "RESTING...";
 
       updateTimerLoop();
-      timerInterval = setInterval(updateTimerLoop, 250);
+      timerInterval = setInterval(updateTimerLoop, 200);
     }
 
     function markTimerExerciseFinished() {
       if (activeTimerExIdx !== null && workoutTemplates[activeTemplateKey][activeTimerExIdx]) {
         workoutTemplates[activeTemplateKey][activeTimerExIdx].completedAt = Date.now();
-        saveStateToLocal();
+        saveState();
       }
     }
 
@@ -621,6 +533,7 @@
       const secLeft = Math.ceil(remainingMs / 1000);
       const timerBar = document.getElementById('timer-bar');
 
+      // Refresh exercise rest completion timestamp while timer runs
       markTimerExerciseFinished();
 
       if (secLeft > 10) {
@@ -632,6 +545,7 @@
         const s = (secLeft % 60).toString().padStart(2, '0');
         document.getElementById('timer-display').innerText = `${m}:${s}`;
       } else if (secLeft > 0) {
+        // Yellow warning state for last 10 seconds
         timerBar.classList.remove('timer-done');
         timerBar.classList.add('timer-warning');
         const pct = Math.min(100, Math.max(0, ((timerTotalSec - secLeft) / timerTotalSec) * 100));
@@ -641,6 +555,7 @@
         const s = (secLeft % 60).toString().padStart(2, '0');
         document.getElementById('timer-display').innerText = `${m}:${s}`;
       } else {
+        // Red finished state
         timerBar.classList.remove('timer-warning');
         timerBar.classList.add('timer-done');
         timerBar.style.background = '#3b1111';
@@ -707,69 +622,26 @@
     }
 
     // ==========================================
-    // 6. WORKOUT CONTROL FLOW (FIX #3)
+    // 6. WORKOUT CONTROL FLOW & COPY
     // ==========================================
     function toggleWorkoutStart() {
       workoutActive = !workoutActive;
+      const banner = document.getElementById('start-banner');
+      const info = document.getElementById('start-info');
+      const btn = document.getElementById('btn-start-toggle');
 
       if (workoutActive) {
         workoutStartTime = Date.now();
-        // Clear old checks when starting fresh session
-        const currentList = workoutTemplates[activeTemplateKey] || [];
-        currentList.forEach(ex => {
-          if (ex.sets) ex.sets.forEach(s => s.done = false);
-        });
+        banner.classList.add('active');
+        info.innerText = `Active since ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        btn.innerText = "Cancel Workout";
       } else {
         workoutStartTime = null;
+        banner.classList.remove('active');
+        info.innerText = "Workout Status: Not Started";
+        btn.innerText = "Start Workout";
       }
-      saveState();
       renderTracker();
-    }
-
-    function finishWorkout() {
-      if (!workoutActive && !confirm("Workout is not marked as started. Finish anyway and save to history?")) {
-        return;
-      }
-
-      const now = new Date();
-      const currentList = workoutTemplates[activeTemplateKey] || [];
-
-      const historyItem = {
-        id: Date.now(),
-        templateName: activeTemplateKey,
-        dateStr: now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now(),
-        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-        endTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        totalDurationMin: workoutStartTime ? Math.max(1, Math.round((Date.now() - workoutStartTime) / 60000)) : 0,
-        exercises: JSON.parse(JSON.stringify(currentList))
-      };
-
-      workoutHistory.unshift(historyItem);
-
-      // Reset checked states for next session
-      currentList.forEach(ex => {
-        if (ex.sets) ex.sets.forEach(s => s.done = false);
-      });
-
-      workoutActive = false;
-      workoutStartTime = null;
-
-      saveState();
-      stopTimer();
-      alert("Workout saved to history!");
-      switchTab('history');
-    }
-
-    function resetWorkout() {
-      if (confirm("Reset all checks and uncheck all sets?")) {
-        const currentList = workoutTemplates[activeTemplateKey] || [];
-        currentList.forEach(ex => {
-          if (ex.sets) ex.sets.forEach(s => s.done = false);
-        });
-        saveState();
-        renderTracker();
-      }
     }
 
     function copyWorkoutAsText() {
@@ -797,21 +669,29 @@
         }
       });
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => alert("Workout template copied to clipboard!"));
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
+      const copyAction = (textToCopy) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(textToCopy);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = textToCopy;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          return Promise.resolve();
+        }
+      };
+
+      copyAction(text).then(() => {
         alert("Workout template copied to clipboard!");
-      }
+      }).catch(() => {
+        alert("Failed to copy text automatically.");
+      });
     }
 
     // ==========================================
-    // 7. MODALS CONTROL
+    // 7. MODALS
     // ==========================================
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -859,54 +739,15 @@
       renderTracker();
     }
 
-    function changeTemplate(key) {
-      if (workoutTemplates[key]) {
-        activeTemplateKey = key;
-        saveState();
-        renderTracker();
-      }
-    }
-
-    function renameCurrentTemplate() {
-      const newName = prompt("Rename template:", activeTemplateKey);
-      if (!newName || !newName.trim() || newName.trim() === activeTemplateKey) return;
-      const trimmed = newName.trim();
-      if (workoutTemplates[trimmed]) {
-        alert("A template with this name already exists.");
-        return;
-      }
-      workoutTemplates[trimmed] = workoutTemplates[activeTemplateKey];
-      delete workoutTemplates[activeTemplateKey];
-      activeTemplateKey = trimmed;
-      saveState();
-      renderTracker();
-    }
-
-    function deleteCurrentTemplate() {
-      const keys = Object.keys(workoutTemplates);
-      if (keys.length <= 1) {
-        alert("You must keep at least one template.");
-        return;
-      }
-      if (confirm(`Delete template "${activeTemplateKey}"?`)) {
-        delete workoutTemplates[activeTemplateKey];
-        activeTemplateKey = Object.keys(workoutTemplates)[0];
-        saveState();
-        renderTracker();
-      }
-    }
-
     // ==========================================
-    // 8. CORE TRACKER & EXERCISE MANAGEMENT (FIX #2)
+    // 8. CORE RENDER & TRACKER LOGIC
     // ==========================================
     function toggleSet(exIdx, setIdx) {
-      initAudio();
+      initAudio(); // Reactivate audio context directly on set interaction
 
-      // FIX #2 & #3: Auto-start workout if user checks set without pressing start button
       if (!workoutActive) {
-        workoutActive = true;
-        workoutStartTime = Date.now();
-        saveStateToLocal();
+        alert("Please click 'Start Workout' before completing sets!");
+        return;
       }
 
       const ex = workoutTemplates[activeTemplateKey][exIdx];
@@ -924,72 +765,54 @@
       renderTracker();
     }
 
-    // FIX #2: Update inputs without full DOM re-renders so scrolling/typing isn't interrupted
     function updateVal(exIdx, setIdx, field, value) {
-      if (workoutTemplates[activeTemplateKey][exIdx]?.sets[setIdx]) {
-        workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = Number(value);
-        saveStateToLocal();
-        calculateWorkoutTimings();
-      }
+      workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = Number(value);
+      saveState();
+      calculateWorkoutTimings();
     }
 
     function updateExComment(exIdx, value) {
-      if (workoutTemplates[activeTemplateKey][exIdx]) {
-        workoutTemplates[activeTemplateKey][exIdx].comment = value;
-        saveStateToLocal();
-      }
+      workoutTemplates[activeTemplateKey][exIdx].comment = value;
+      saveState();
     }
 
     function updateCardioText(exIdx, value) {
-      if (workoutTemplates[activeTemplateKey][exIdx]) {
-        workoutTemplates[activeTemplateKey][exIdx].text = value;
-        saveStateToLocal();
-      }
+      workoutTemplates[activeTemplateKey][exIdx].text = value;
+      saveState();
     }
 
     function updateExName(exIdx, value) {
-      if (workoutTemplates[activeTemplateKey][exIdx]) {
-        workoutTemplates[activeTemplateKey][exIdx].name = value;
-        saveStateToLocal();
-      }
+      workoutTemplates[activeTemplateKey][exIdx].name = value;
+      saveState();
     }
 
     function addSet(exIdx) {
-      const ex = workoutTemplates[activeTemplateKey][exIdx];
-      if (!ex || !ex.sets) return;
-      const lastSet = ex.sets[ex.sets.length - 1];
-      ex.sets.push({
-        weight: lastSet ? lastSet.weight : 10,
-        reps: lastSet ? lastSet.reps : 10,
-        pause: lastSet ? lastSet.pause : 2,
-        done: false
-      });
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      const lastSet = sets[sets.length - 1] || { weight: 10, reps: 10, pause: 2 };
+      sets.push({ ...lastSet, done: false });
       saveState();
       renderTracker();
     }
 
     function deleteSet(exIdx, setIdx) {
-      const ex = workoutTemplates[activeTemplateKey][exIdx];
-      if (!ex || !ex.sets) return;
-      ex.sets.splice(setIdx, 1);
+      const sets = workoutTemplates[activeTemplateKey][exIdx].sets;
+      if (sets.length <= 1) return alert("An exercise must have at least one set.");
+      sets.splice(setIdx, 1);
       saveState();
       renderTracker();
     }
 
     function deleteExercise(exIdx) {
-      const ex = workoutTemplates[activeTemplateKey][exIdx];
-      if (!ex) return;
-      if (confirm(`Delete exercise "${ex.name}"?`)) {
+      if (confirm("Delete this exercise from template?")) {
         workoutTemplates[activeTemplateKey].splice(exIdx, 1);
         saveState();
         renderTracker();
       }
     }
 
-    function moveExercise(exIdx, direction) {
+    function moveExercise(exIdx, dir) {
       const list = workoutTemplates[activeTemplateKey];
-      if (!list) return;
-      const targetIdx = exIdx + direction;
+      const targetIdx = exIdx + dir;
       if (targetIdx < 0 || targetIdx >= list.length) return;
       const temp = list[exIdx];
       list[exIdx] = list[targetIdx];
@@ -998,216 +821,195 @@
       renderTracker();
     }
 
-    // ==========================================
-    // 9. RENDER TRACKER
-    // ==========================================
+    function changeTemplate(name) {
+      activeTemplateKey = name;
+      saveState();
+      renderTracker();
+    }
+
+    function renameCurrentTemplate() {
+      const oldName = activeTemplateKey;
+      const newName = prompt("Rename template:", oldName);
+      if (newName && newName.trim() !== '' && newName.trim() !== oldName) {
+        const trimmed = newName.trim();
+        if (workoutTemplates[trimmed]) return alert("Template name already exists!");
+        workoutTemplates[trimmed] = workoutTemplates[oldName];
+        delete workoutTemplates[oldName];
+        activeTemplateKey = trimmed;
+        saveState();
+        renderTracker();
+      }
+    }
+
+    function resetWorkout() {
+      if (confirm("Reset current checkmarks?")) {
+        workoutTemplates[activeTemplateKey].forEach(ex => {
+          delete ex.completedAt;
+          if (ex.sets) ex.sets.forEach(s => s.done = false);
+        });
+        saveState();
+        stopTimer();
+        renderTracker();
+      }
+    }
+
+    function finishWorkout() {
+      if (!workoutActive && !confirm("Save workout without starting official timer?")) return;
+
+      const finishTimestamp = Date.now();
+      const startTimestamp = workoutStartTime || finishTimestamp;
+      const diffMs = finishTimestamp - startTimestamp;
+      const totalDurationMin = diffMs > 0 ? Math.max(1, Math.round(diffMs / 60000)) : 0;
+      let completedSetsCount = 0;
+
+      const historyEntry = {
+        id: finishTimestamp,
+        templateName: activeTemplateKey,
+        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
+        endTime: new Date(finishTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        totalDurationMin: totalDurationMin,
+        date: new Date(finishTimestamp).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }),
+        exercises: []
+      };
+
+      // Calculate exercise timing: end of rest of prev exercise ➔ end of rest of current exercise
+      let previousExerciseEndTime = startTimestamp;
+
+      workoutTemplates[activeTemplateKey].forEach(ex => {
+        if (ex.cardio) {
+          historyEntry.exercises.push({
+            name: ex.name,
+            cardio: true,
+            text: ex.text
+          });
+        } else {
+          const doneSets = ex.sets.filter(s => s.done);
+          if (doneSets.length > 0) {
+            completedSetsCount++;
+            
+            // Current exercise end timestamp (including completed rest)
+            const currentExEndTime = ex.completedAt || Date.now();
+            const exDurationMs = currentExEndTime - previousExerciseEndTime;
+            const exDurationMin = Math.max(1, Math.round(exDurationMs / 60000));
+            previousExerciseEndTime = currentExEndTime;
+
+            historyEntry.exercises.push({
+              name: ex.name,
+              comment: ex.comment || "",
+              duration: `${exDurationMin} min`,
+              sets: doneSets.map(s => `${s.weight}kg × ${s.reps} reps | ${s.pause}m rest`)
+            });
+          }
+        }
+        delete ex.completedAt;
+      });
+
+      if (completedSetsCount === 0 && !historyEntry.exercises.some(e => e.cardio)) {
+        return alert("Please mark at least one set as completed before saving!");
+      }
+
+      workoutHistory.unshift(historyEntry);
+
+      workoutTemplates[activeTemplateKey].forEach(ex => {
+        if (ex.sets) ex.sets.forEach(s => s.done = false);
+      });
+
+      workoutActive = false;
+      workoutStartTime = null;
+      document.getElementById('start-banner').classList.remove('active');
+      document.getElementById('start-info').innerText = "Workout Status: Not Started";
+      document.getElementById('btn-start-toggle').innerText = "Start Workout";
+
+      saveState();
+      stopTimer();
+      renderTracker();
+      alert("Workout saved to History!");
+      switchTab('history');
+    }
+
+    function deleteHistoryItem(id) {
+      if (confirm("Delete log from history?")) {
+        workoutHistory = workoutHistory.filter(item => item.id !== id);
+        saveState();
+        renderHistory();
+      }
+    }
+
     function renderTracker() {
+      const select = document.getElementById('template-select');
+      select.innerHTML = Object.keys(workoutTemplates).map(name => `
+        <option value="${name}" ${name === activeTemplateKey ? 'selected' : ''}>${name}</option>
+      `).join('');
+
       calculateWorkoutTimings();
 
-      const selectEl = document.getElementById('template-select');
-      if (selectEl) {
-        selectEl.innerHTML = '';
-        Object.keys(workoutTemplates).forEach(key => {
-          const opt = document.createElement('option');
-          opt.value = key;
-          opt.innerText = key;
-          if (key === activeTemplateKey) opt.selected = true;
-          selectEl.appendChild(opt);
-        });
-      }
-
-      const banner = document.getElementById('start-banner');
-      const info = document.getElementById('start-info');
-      const btn = document.getElementById('btn-start-toggle');
-
-      if (workoutActive) {
-        banner.classList.add('active');
-        const startStr = workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active';
-        info.innerText = `Active since ${startStr}`;
-        btn.innerText = "Cancel Workout";
-      } else {
-        banner.classList.remove('active');
-        info.innerText = "Workout Status: Not Started";
-        btn.innerText = "Start Workout";
-      }
-
       const container = document.getElementById('workout-list');
-      if (!container) return;
       container.innerHTML = '';
 
       const currentList = workoutTemplates[activeTemplateKey] || [];
-
-      if (currentList.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--subtext); padding:20px;">No exercises in this template. Click "+ Add Exercise" below.</div>';
-        return;
-      }
 
       currentList.forEach((ex, exIdx) => {
         const card = document.createElement('div');
         card.className = 'card';
 
-        let cardContent = `
+        let html = `
           <div class="card-header">
-            <input type="text" class="card-title" value="${escapeHtml(ex.name)}" onchange="updateExName(${exIdx}, this.value)" style="background:transparent; border:none; border-bottom:1px solid transparent; font-size:1rem; font-weight:700; color:#fff; width:65%;" onfocus="this.style.borderColor='var(--active)'" onblur="this.style.borderColor='transparent'">
+            <input type="text" class="card-title" style="background:transparent; border:none; width:70%;" 
+              value="${ex.name}" onchange="updateExName(${exIdx}, this.value)">
             <div class="card-controls">
-              <button class="icon-btn" title="Move Up" onclick="moveExercise(${exIdx}, -1)">▲</button>
-              <button class="icon-btn" title="Move Down" onclick="moveExercise(${exIdx}, 1)">▼</button>
-              <button class="icon-btn danger" title="Delete Exercise" onclick="deleteExercise(${exIdx})">🗑</button>
+              <button class="icon-btn" onclick="moveExercise(${exIdx}, -1)">▲</button>
+              <button class="icon-btn" onclick="moveExercise(${exIdx}, 1)">▼</button>
+              <button class="icon-btn danger" onclick="deleteExercise(${exIdx})">✕</button>
             </div>
           </div>
         `;
 
         if (ex.cardio) {
-          cardContent += `
-            <textarea class="note-textarea" placeholder="Warmup notes or duration..." onchange="updateCardioText(${exIdx}, this.value)">${escapeHtml(ex.text || '')}</textarea>
+          html += `
+            <div class="cardno-row">
+              <span style="font-size:0.75rem; color:var(--subtext);">Warmup / Cardio Details:</span>
+              <textarea class="note-textarea" onchange="updateCardioText(${exIdx}, this.value)" 
+                placeholder="Warmup details...">${ex.text || ''}</textarea>
+            </div>
           `;
         } else {
-          cardContent += `
-            <textarea class="ex-comment-input" placeholder="Exercise notes / form cues..." onchange="updateExComment(${exIdx}, this.value)">${escapeHtml(ex.comment || '')}</textarea>
+          html += `
+            <textarea class="ex-comment-input" placeholder="Exercise notes/comment (e.g. seat height 4)" 
+              onchange="updateExComment(${exIdx}, this.value)">${ex.comment || ''}</textarea>
           `;
 
-          if (ex.sets) {
-            ex.sets.forEach((set, setIdx) => {
-              cardContent += `
-                <div class="set-row ${set.done ? 'completed' : ''}">
-                  <div style="font-size:0.75rem; color:var(--subtext); text-align:center; font-weight:600;">#${setIdx + 1}</div>
-                  <div class="val-box">
-                    <span class="val-label">WEIGHT (KG)</span>
-                    <input type="number" class="val-input" value="${set.weight}" onchange="updateVal(${exIdx}, ${setIdx}, 'weight', this.value)">
-                  </div>
-                  <div class="val-box">
-                    <span class="val-label">REPS</span>
-                    <input type="number" class="val-input" value="${set.reps}" onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
-                  </div>
-                  <div class="val-box">
-                    <span class="val-label">REST (MIN)</span>
-                    <input type="number" step="0.5" class="val-input" value="${set.pause}" onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
-                  </div>
-                  <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">${set.done ? '✓' : ''}</button>
-                  <button class="icon-btn danger" style="width:24px; height:24px; font-size:0.7rem;" title="Delete Set" onclick="deleteSet(${exIdx}, ${setIdx})">×</button>
+          ex.sets.forEach((set, setIdx) => {
+            html += `
+              <div class="set-row ${set.done ? 'completed' : ''}">
+                <div class="val-box">
+                  <span class="val-label">KG</span>
+                  <input type="number" class="val-input" value="${set.weight}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'weight', this.value)">
                 </div>
-              `;
-            });
-          }
+                <div class="val-box">
+                  <span class="val-label">REPS</span>
+                  <input type="number" class="val-input" value="${set.reps}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
+                </div>
+                <div class="val-box">
+                  <span class="val-label">REST(min)</span>
+                  <input type="number" step="0.5" class="val-input" value="${set.pause}" 
+                    onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
+                </div>
+                <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">
+                  ${set.done ? '✓' : ''}
+                </button>
+                <button class="icon-btn danger" style="width:20px; height:20px; font-size:0.6rem;" 
+                  onclick="deleteSet(${exIdx}, ${setIdx})">✕</button>
+              </div>
+            `;
+          });
 
-          cardContent += `
+          html += `
             <div class="card-actions">
               <button class="btn-link" onclick="addSet(${exIdx})">+ Add Set</button>
             </div>
           `;
-        }
-
-        card.innerHTML = cardContent;
-        container.appendChild(card);
-      });
-    }
-
-    // ==========================================
-    // 10. HISTORY & MANUAL EDITING (FIX #4)
-    // ==========================================
-    function renderHistory() {
-      const container = document.getElementById('history-list');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (!workoutHistory || workoutHistory.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--subtext); padding:20px;">No workout history recorded yet.</div>';
-        return;
-      }
-
-      workoutHistory.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'history-item';
-
-        let exercisesHtml = '';
-        if (item.exercises) {
-          item.exercises.forEach(ex => {
-            exercisesHtml += `<div class="history-ex-title">${escapeHtml(ex.name)}</div>`;
-            if (ex.comment) {
-              exercisesHtml += `<div class="history-ex-comment">${escapeHtml(ex.comment)}</div>`;
-            }
-            if (ex.cardio && ex.text) {
-              exercisesHtml += `<div class="history-set-line">${escapeHtml(ex.text)}</div>`;
-            } else if (ex.sets) {
-              ex.sets.forEach((s, sIdx) => {
-                exercisesHtml += `<div class="history-set-line">Set ${sIdx + 1}: ${s.weight}kg × ${s.reps} reps ${s.done ? '✓' : ''}</div>`;
-              });
-            }
-          });
-        }
-
-        card.innerHTML = `
-          <div class="history-header">
-            <span class="history-date">${escapeHtml(item.templateName || 'Workout')} - ${escapeHtml(item.dateStr || '')}</span>
-            <div>
-              <button class="btn-small" style="padding:4px 8px; margin-right:4px;" onclick="editHistoryItem(${index})">✎ Edit</button>
-              <button class="btn-small" style="padding:4px 8px; color:var(--danger); border-color:var(--danger);" onclick="deleteHistoryItem(${index})">🗑</button>
-            </div>
-          </div>
-          <div class="history-duration">⏱️ Duration: ${item.totalDurationMin || 0} min (${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'})</div>
-          <div class="history-details">${exercisesHtml}</div>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    let editingHistoryIndex = null;
-    let historyEditingCopy = null;
-
-    function editHistoryItem(index) {
-      editingHistoryIndex = index;
-      historyEditingCopy = JSON.parse(JSON.stringify(workoutHistory[index]));
-
-      document.getElementById('edit-hist-date').value = historyEditingCopy.dateStr || '';
-      document.getElementById('edit-hist-duration').value = historyEditingCopy.totalDurationMin || 0;
-      document.getElementById('edit-hist-template').value = historyEditingCopy.templateName || '';
-
-      renderHistoryEditExercises();
-      openModal('modal-edit-history');
-    }
-
-    function renderHistoryEditExercises() {
-      const container = document.getElementById('edit-hist-exercises-container');
-      if (!container || !historyEditingCopy) return;
-      container.innerHTML = '';
-
-      const exercises = historyEditingCopy.exercises || [];
-
-      exercises.forEach((ex, exIdx) => {
-        const card = document.createElement('div');
-        card.style.cssText = "background:#1e1e1e; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:10px;";
-
-        let html = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
-            <input type="text" value="${escapeHtml(ex.name || '')}" onchange="historyEditingCopy.exercises[${exIdx}].name = this.value" style="background:#2a2a2a; border:1px solid var(--border); color:#fff; padding:6px; border-radius:6px; font-weight:bold; flex:1; font-size:0.85rem;">
-            <button onclick="deleteHistExercise(${exIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">Delete</button>
-          </div>
-        `;
-
-        if (ex.cardio) {
-          html += `<textarea onchange="historyEditingCopy.exercises[${exIdx}].text = this.value" style="width:100%; background:#121212; color:#7dd3fc; border:1px solid #333; padding:6px; border-radius:6px; font-size:0.8rem; font-style:italic;">${escapeHtml(ex.text || '')}</textarea>`;
-        } else {
-          html += `<input type="text" value="${escapeHtml(ex.comment || '')}" placeholder="Exercise note" onchange="historyEditingCopy.exercises[${exIdx}].comment = this.value" style="width:100%; background:#121212; color:#a0a0a0; border:1px solid #333; padding:4px 6px; border-radius:6px; font-size:0.75rem; font-style:italic; margin-bottom:6px;">`;
-
-          html += `<div style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;">`;
-          (ex.sets || []).forEach((set, setIdx) => {
-            html += `
-              <div style="display:grid; grid-template-columns: 1fr 1fr 32px; gap:6px; align-items:center;">
-                <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
-                  <span style="font-size:0.65rem; color:#888; margin-right:4px;">kg:</span>
-                  <input type="number" value="${set.weight}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].weight = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
-                </div>
-                <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
-                  <span style="font-size:0.65rem; color:#888; margin-right:4px;">reps:</span>
-                  <input type="number" value="${set.reps}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].reps = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
-                </div>
-                <button onclick="deleteHistSet(${exIdx}, ${setIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:4px; cursor:pointer; font-size:0.8rem; height:28px;">×</button>
-              </div>
-            `;
-          });
-          html += `</div>`;
-          html += `<button onclick="addHistSet(${exIdx})" style="background:#2a2a2a; color:var(--active); border:1px dashed var(--border); padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">+ Add Set</button>`;
         }
 
         card.innerHTML = html;
@@ -1215,131 +1017,76 @@
       });
     }
 
-    function addHistSet(exIdx) {
-      if (!historyEditingCopy || !historyEditingCopy.exercises[exIdx]) return;
-      const sets = historyEditingCopy.exercises[exIdx].sets || [];
-      const lastSet = sets[sets.length - 1];
-      sets.push({
-        weight: lastSet ? lastSet.weight : 10,
-        reps: lastSet ? lastSet.reps : 10,
-        pause: lastSet ? lastSet.pause : 2,
-        done: true
-      });
-      historyEditingCopy.exercises[exIdx].sets = sets;
-      renderHistoryEditExercises();
-    }
-
-    function deleteHistSet(exIdx, setIdx) {
-      if (!historyEditingCopy || !historyEditingCopy.exercises[exIdx]) return;
-      historyEditingCopy.exercises[exIdx].sets.splice(setIdx, 1);
-      renderHistoryEditExercises();
-    }
-
-    function deleteHistExercise(exIdx) {
-      if (!historyEditingCopy) return;
-      historyEditingCopy.exercises.splice(exIdx, 1);
-      renderHistoryEditExercises();
-    }
-
-    function addHistExercise() {
-      if (!historyEditingCopy) return;
-      const name = prompt("Enter Exercise Name:", "New Exercise");
-      if (!name) return;
-      historyEditingCopy.exercises.push({
-        name, comment: "", sets: [{ weight: 10, reps: 10, pause: 2, done: true }]
-      });
-      renderHistoryEditExercises();
-    }
-
-    function saveHistoryEdit() {
-      if (editingHistoryIndex === null || !historyEditingCopy) return;
-
-      historyEditingCopy.dateStr = document.getElementById('edit-hist-date').value;
-      historyEditingCopy.totalDurationMin = Number(document.getElementById('edit-hist-duration').value);
-      historyEditingCopy.templateName = document.getElementById('edit-hist-template').value;
-
-      workoutHistory[editingHistoryIndex] = historyEditingCopy;
-      saveState();
-      closeModal('modal-edit-history');
-      renderHistory();
-      editingHistoryIndex = null;
-      historyEditingCopy = null;
-    }
-
-    function deleteHistoryItem(index) {
-      if (confirm("Delete this workout entry from history?")) {
-        workoutHistory.splice(index, 1);
-        saveState();
-        renderHistory();
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      if (workoutHistory.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color: var(--subtext); margin-top: 40px;">No workout history logged yet.</p>`;
+        return;
       }
+
+      container.innerHTML = workoutHistory.map(item => `
+        <div class="history-item">
+          <div class="history-header">
+            <span class="history-date">${item.templateName || 'Workout'} - ${item.date}</span>
+            <button class="icon-btn danger" style="width:24px; height:24px;" onclick="deleteHistoryItem(${item.id})">✕</button>
+          </div>
+          <div class="history-duration">⏱️ Time: ${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'} ${item.totalDurationMin ? `(${item.totalDurationMin}m)` : ''}</div>
+          <div class="history-details">
+            ${item.exercises.map(ex => `
+              <div class="history-ex-title">
+                <span>${ex.name} ${ex.cardio ? '(Warmup)' : ''}</span>
+                ${ex.duration ? `<span style="font-size:0.75rem; color:var(--subtext); font-weight:normal;">⏱️ ${ex.duration}</span>` : ''}
+              </div>
+              ${ex.comment ? `<div class="history-ex-comment">Note: ${ex.comment}</div>` : ''}
+              ${ex.cardio ? `<div class="history-set-line">${ex.text}</div>` : ''}
+              ${ex.sets ? ex.sets.map(s => `<div class="history-set-line">• ${s}</div>`).join('') : ''}
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
     }
 
-    // ==========================================
-    // 11. NAVIGATION & DATA IMPORT/EXPORT
-    // ==========================================
     function switchTab(tab) {
-      const trackerTabBtn = document.getElementById('tab-tracker-btn');
-      const historyTabBtn = document.getElementById('tab-history-btn');
-      const viewTracker = document.getElementById('view-tracker');
-      const viewHistory = document.getElementById('view-history');
-      const templateBar = document.getElementById('template-bar');
-
-      if (tab === 'tracker') {
-        trackerTabBtn.classList.add('active');
-        historyTabBtn.classList.remove('active');
-        viewTracker.style.display = 'block';
-        viewHistory.style.display = 'none';
-        templateBar.style.display = 'flex';
-        renderTracker();
-      } else {
-        historyTabBtn.classList.add('active');
-        trackerTabBtn.classList.remove('active');
-        viewTracker.style.display = 'none';
-        viewHistory.style.display = 'block';
-        templateBar.style.display = 'none';
-        renderHistory();
-      }
+      document.getElementById('view-tracker').style.display = tab === 'tracker' ? 'block' : 'none';
+      document.getElementById('view-history').style.display = tab === 'history' ? 'block' : 'none';
+      document.getElementById('template-bar').style.display = tab === 'tracker' ? 'flex' : 'none';
+      document.getElementById('timing-summary').style.display = tab === 'tracker' ? 'flex' : 'none';
+      document.getElementById('tab-tracker-btn').classList.toggle('active', tab === 'tracker');
+      document.getElementById('tab-history-btn').classList.toggle('active', tab === 'history');
+      if (tab === 'history') renderHistory();
     }
 
     function exportToFile() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        workoutTemplates, activeTemplateKey, workoutHistory
-      }, null, 2));
-      const dlAnchorElem = document.createElement('a');
-      dlAnchorElem.setAttribute("href", dataStr);
-      dlAnchorElem.setAttribute("download", `gym_tracker_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(dlAnchorElem);
-      dlAnchorElem.click();
-      dlAnchorElem.remove();
+      const blob = new Blob([JSON.stringify({ workoutTemplates, activeTemplateKey, workoutHistory }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `workout_data.json`;
+      a.click();
     }
 
     function importFromFile(event) {
-      const fileReader = new FileReader();
-      fileReader.onload = function(e) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
         try {
-          const parsed = JSON.parse(e.target.result);
-          if (parsed.workoutTemplates) workoutTemplates = parsed.workoutTemplates;
-          if (parsed.activeTemplateKey) activeTemplateKey = parsed.activeTemplateKey;
-          if (parsed.workoutHistory) workoutHistory = parsed.workoutHistory;
-          sanitizeData();
-          saveState();
-          renderTracker();
-          renderHistory();
-          alert("Data imported successfully!");
-        } catch (err) {
-          alert("Invalid JSON file.");
-        }
+          const data = JSON.parse(e.target.result);
+          if (data && data.workoutTemplates) {
+            workoutTemplates = data.workoutTemplates;
+            activeTemplateKey = data.activeTemplateKey || Object.keys(workoutTemplates)[0];
+            workoutHistory = data.workoutHistory || [];
+            sanitizeData();
+            saveState();
+            renderTracker();
+            if (document.getElementById('view-history').style.display !== 'none') renderHistory();
+            alert("Workout data imported successfully!");
+          }
+        } catch (err) { alert("Error parsing JSON file."); }
       };
-      if (event.target.files[0]) {
-        fileReader.readAsText(event.target.files[0]);
-      }
+      reader.readAsText(file);
     }
 
-    // ==========================================
-    // 12. INITIALIZATION
-    // ==========================================
-    window.addEventListener('DOMContentLoaded', () => {
-      renderTracker();
-    });
+    renderTracker();
   </script>
-</body></html>
+</body>
+</html>
