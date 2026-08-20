@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Workout Tracker</title>
@@ -55,16 +57,22 @@
     .template-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .template-select {
       flex: 1; min-width: 110px; background: #2a2a2a; color: #fff; border: 1px solid var(--border);
-      padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+      padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; height: 35px;
     }
     .btn-small {
       background: #2a2a2a; color: var(--text); border: 1px solid var(--border);
-      padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; height: 35px;
+    }
+    
+    /* Compact Minutes Field matching WO height */
+    .est-mins-wrapper {
+      display: inline-flex; align-items: center; gap: 2px; background: #2a2a2a;
+      border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; height: 35px;
+      font-size: 0.85rem; color: var(--subtext);
     }
     .est-mins-field {
-      width: 58px; text-align: center; color: var(--active); font-weight: 700;
-      background: #2a2a2a; border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 4px; font-size: 0.75rem;
+      width: 3.2ch; text-align: center; color: var(--active); font-weight: 700;
+      background: transparent; border: none; outline: none; font-size: 0.85rem; padding: 0;
       -moz-appearance: textfield;
     }
     .est-mins-field::-webkit-inner-spin-button,
@@ -136,24 +144,30 @@
     .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; }
     .btn-add-ex { background: #2a2a2a; color: var(--text); border: 1px dashed var(--subtext); margin-bottom: 12px; }
 
+    /* History Layout Restored */
     .history-item {
       background: var(--card); border-radius: 12px; padding: 14px;
       margin-bottom: 12px; border: 1px solid var(--border);
     }
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .history-date { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
-    .history-duration { font-size: 0.75rem; color: var(--subtext); margin-bottom: 8px; }
-    .history-details { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.85rem; color: #ddd; }
-    .history-ex-title { font-weight: 600; margin-top: 8px; margin-bottom: 2px; color: var(--active); display: flex; justify-content: space-between; align-items: center; }
-    .history-ex-comment { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-bottom: 4px; white-space: pre-wrap; }
-    .history-set-line { padding: 2px 0 2px 8px; color: #ccc; border-left: 2px solid #334155; margin-bottom: 4px; font-size: 0.82rem; white-space: pre-wrap; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .history-date { font-weight: 700; color: var(--accent); font-size: 1rem; }
+    .history-duration { font-size: 0.8rem; color: var(--subtext); margin-bottom: 12px; }
+    .history-details { border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+    .history-ex-block { display: flex; flex-direction: column; gap: 2px; }
+    .history-ex-title { font-weight: 700; color: var(--active); font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
+    .history-ex-dur { font-size: 0.8rem; color: var(--subtext); font-weight: 400; }
+    .history-ex-note { font-size: 0.82rem; color: var(--subtext); margin-bottom: 2px; }
+    .history-ex-note em { font-style: italic; color: #cbd5e1; }
+    .history-cardio-text { font-size: 0.85rem; color: #ccc; line-height: 1.4; white-space: pre-wrap; margin-top: 2px; padding-left: 8px; border-left: 2px solid #334155; }
+    .history-sets-list { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+    .history-set-bullet { font-size: 0.85rem; color: #e2e8f0; line-height: 1.45; padding-left: 6px; }
 
     /* Timer Bar Styles */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: linear-gradient(to right, var(--timer-progress) 0%, var(--timer-bg) 0%);
       border-top: 2px solid var(--active);
-      padding: 10px 16px; display: flex; justify-space-between; align-items: center;
+      padding: 10px 16px; display: flex; justify-content: space-between; align-items: center;
       z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.5); transition: background 0.2s ease, border-color 0.2s ease;
     }
     #timer-bar.timer-warning {
@@ -201,7 +215,7 @@
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker <span class="commit-tag">v1.0.5</span></h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.0.6</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -209,7 +223,11 @@
     </div>
     <div class="template-bar" id="template-bar">
       <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
-      <input type="number" id="est-mins-input" class="est-mins-field" placeholder="min" min="0" max="999" onchange="saveCustomEstWorkout(this.value)" title="Estimated Duration (Minutes)">
+      <div class="est-mins-wrapper">
+        <span>⏱️</span>
+        <input type="number" id="est-mins-input" class="est-mins-field" placeholder="0" min="0" max="999" onchange="saveCustomEstWorkout(this.value)" title="Estimated Duration (Minutes)">
+        <span>'</span>
+      </div>
       <button class="btn-small" onclick="showNewTemplateModal()">New</button>
       <button class="btn-small" onclick="showEditTemplateModal()">Edit</button>
       <button class="btn-small" onclick="copyWorkoutAsText()">Copy</button>
@@ -748,7 +766,6 @@
     // ==========================================
     function toggleWorkoutStart() {
       if (workoutActive) {
-        // Cancelling active workout -> reset boxes
         if (confirm("Cancel current active workout? All checked boxes will be reset.")) {
           workoutActive = false;
           workoutStartTime = null;
@@ -775,14 +792,14 @@
       const now = new Date();
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
-      // Deep copy workout exercises & exact weights/reps at time of completion
+      // Deep copy workout exercises & exact weights/reps/rest times at time of completion
       const savedExercises = currentList.map(ex => {
         const exCopy = { name: ex.name, comment: ex.comment || '', cardio: !!ex.cardio, text: ex.text || '' };
         if (ex.sets) {
           exCopy.sets = ex.sets.map(s => ({
             weight: Number((s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0)),
             reps: Number(s.reps || 0),
-            pause: Number(s.pause || 2),
+            pause: Number(s.pause !== undefined ? s.pause : 2),
             done: !!s.done
           }));
         }
@@ -796,8 +813,8 @@
         templateName: activeTemplateKey,
         dateStr: dateStrFormatted,
         timestamp: Date.now(),
-        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
-        endTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A',
+        endTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         totalDurationMin: workoutStartTime ? Math.max(1, Math.round((Date.now() - workoutStartTime) / 60000)) : 0,
         exercises: savedExercises
       };
@@ -836,7 +853,7 @@
 
       let text = `🏋️ ${activeTemplateKey} - ${dateStr}\n`;
       if (workoutStartTime) {
-        text += `⏱️ Time: ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}\n`;
+        text += `⏱️ Time: ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}\n`;
       }
       text += `------------------------------\n`;
 
@@ -1080,7 +1097,7 @@
 
       if (workoutActive) {
         banner.classList.add('active');
-        const startStr = workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active';
+        const startStr = workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'Active';
         info.innerText = `Active since ${startStr}`;
         btn.innerText = "Cancel Workout";
       } else {
@@ -1161,7 +1178,7 @@
     }
 
     // ==========================================
-    // 10. HISTORY & MANUAL EDITING
+    // 10. HISTORY & RESTORED ORIGINAL UI
     // ==========================================
     function renderHistory() {
       const container = document.getElementById('history-list');
@@ -1180,23 +1197,41 @@
         let exercisesHtml = '';
         if (item.exercises) {
           item.exercises.forEach(ex => {
-            exercisesHtml += `<div class="history-ex-title">${escapeHtml(ex.name)}</div>`;
+            let exDur = ex.duration ? `<span class="history-ex-dur">⏱️ ${escapeHtml(ex.duration)} min</span>` : '';
+            exercisesHtml += `<div class="history-ex-block">`;
+            exercisesHtml += `<div class="history-ex-title"><span>${escapeHtml(ex.name)}</span>${exDur}</div>`;
+            
             if (ex.comment) {
-              exercisesHtml += `<div class="history-ex-comment">${escapeHtml(ex.comment)}</div>`;
+              exercisesHtml += `<div class="history-ex-note">Note: <em>${escapeHtml(ex.comment)}</em></div>`;
             }
+            
             if (ex.cardio && ex.text) {
-              exercisesHtml += `<div class="history-set-line">${escapeHtml(ex.text)}</div>`;
-            } else if (ex.sets) {
-              ex.sets.forEach((s, sIdx) => {
-                const kgVal = (s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0);
-                const repsVal = (s.reps !== undefined && s.reps !== null) ? s.reps : 0;
-                exercisesHtml += `<div class="history-set-line">Set ${sIdx + 1}: ${kgVal}kg × ${repsVal} reps ${s.done ? '✓' : ''}</div>`;
+              exercisesHtml += `<div class="history-cardio-text">${escapeHtml(ex.text)}</div>`;
+            } else if (ex.sets && ex.sets.length > 0) {
+              exercisesHtml += `<div class="history-sets-list">`;
+              ex.sets.forEach((s) => {
+                if (typeof s === 'string') {
+                  exercisesHtml += `<div class="history-set-bullet">• ${escapeHtml(s)}</div>`;
+                } else {
+                  const kgVal = (s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0);
+                  const repsVal = (s.reps !== undefined && s.reps !== null) ? s.reps : 0;
+                  const pauseVal = (s.pause !== undefined && s.pause !== null) ? s.pause : 2;
+                  let str = `• ${kgVal}kg × ${repsVal} reps`;
+                  if (pauseVal > 0) str += ` | ${pauseVal}m rest`;
+                  if (s.comment) str += ` — ${s.comment}`;
+                  exercisesHtml += `<div class="history-set-bullet">${escapeHtml(str)}</div>`;
+                }
               });
+              exercisesHtml += `</div>`;
             }
+            exercisesHtml += `</div>`;
           });
         }
 
         const dateDisplay = item.dateStr || (item.timestamp ? new Date(item.timestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown Date');
+        const startTimeStr = item.startTime || 'N/A';
+        const endTimeStr = item.endTime || 'N/A';
+        const durationMinStr = item.totalDurationMin || 0;
 
         card.innerHTML = `
           <div class="history-header">
@@ -1206,7 +1241,7 @@
               <button class="icon-btn danger" title="Delete Entry" onclick="deleteHistoryItem(${index})">×</button>
             </div>
           </div>
-          <div class="history-duration">⏱️ Duration: ${item.totalDurationMin || 0} min (${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'})</div>
+          <div class="history-duration">⏱️ Time: ${escapeHtml(startTimeStr)} → ${escapeHtml(endTimeStr)} (${durationMinStr}m)</div>
           <div class="history-details">${exercisesHtml}</div>
         `;
 
@@ -1221,15 +1256,16 @@
       editingHistoryIndex = index;
       historyEditingCopy = JSON.parse(JSON.stringify(workoutHistory[index]));
 
-      // Pre-fill fallback set variables if legacy structure
       if (historyEditingCopy.exercises) {
         historyEditingCopy.exercises.forEach(ex => {
           if (ex.sets) {
             ex.sets.forEach(s => {
-              if (s.weight === undefined && s.kg !== undefined) s.weight = s.kg;
-              if (s.weight === undefined) s.weight = 0;
-              if (s.reps === undefined) s.reps = 0;
-              if (s.pause === undefined) s.pause = 2;
+              if (typeof s === 'object') {
+                if (s.weight === undefined && s.kg !== undefined) s.weight = s.kg;
+                if (s.weight === undefined) s.weight = 0;
+                if (s.reps === undefined) s.reps = 0;
+                if (s.pause === undefined) s.pause = 2;
+              }
             });
           }
         });
@@ -1268,19 +1304,31 @@
 
           html += `<div style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;">`;
           (ex.sets || []).forEach((set, setIdx) => {
-            html += `
-              <div style="display:grid; grid-template-columns: 1fr 1fr 32px; gap:6px; align-items:center;">
-                <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
-                  <span style="font-size:0.65rem; color:#888; margin-right:4px;">kg:</span>
-                  <input type="number" value="${set.weight}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].weight = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
+            if (typeof set === 'string') {
+              html += `
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <input type="text" value="${escapeHtml(set)}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}] = this.value" style="width:100%; background:#2a2a2a; border:1px solid #333; color:#fff; font-size:0.8rem; padding:4px; border-radius:4px;">
+                  <button onclick="deleteHistSet(${exIdx}, ${setIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:4px; cursor:pointer; font-size:0.8rem; height:28px;">×</button>
+                </div>`;
+            } else {
+              html += `
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 28px; gap:4px; align-items:center;">
+                  <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
+                    <span style="font-size:0.65rem; color:#888; margin-right:2px;">kg:</span>
+                    <input type="number" value="${set.weight}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].weight = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
+                  </div>
+                  <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
+                    <span style="font-size:0.65rem; color:#888; margin-right:2px;">reps:</span>
+                    <input type="number" value="${set.reps}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].reps = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
+                  </div>
+                  <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
+                    <span style="font-size:0.65rem; color:#888; margin-right:2px;">rest:</span>
+                    <input type="number" step="0.5" value="${set.pause || 2}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].pause = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
+                  </div>
+                  <button onclick="deleteHistSet(${exIdx}, ${setIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:4px; cursor:pointer; font-size:0.8rem; height:28px;">×</button>
                 </div>
-                <div style="background:#2a2a2a; padding:2px 4px; border-radius:4px; display:flex; align-items:center;">
-                  <span style="font-size:0.65rem; color:#888; margin-right:4px;">reps:</span>
-                  <input type="number" value="${set.reps}" onchange="historyEditingCopy.exercises[${exIdx}].sets[${setIdx}].reps = Number(this.value)" style="width:100%; background:transparent; border:none; color:#fff; font-weight:bold; font-size:0.8rem;">
-                </div>
-                <button onclick="deleteHistSet(${exIdx}, ${setIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); border-radius:4px; cursor:pointer; font-size:0.8rem; height:28px;">×</button>
-              </div>
-            `;
+              `;
+            }
           });
           html += `</div>`;
           html += `<button onclick="addHistSet(${exIdx})" style="background:#2a2a2a; color:var(--active); border:1px dashed var(--border); padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">+ Add Set</button>`;
@@ -1296,9 +1344,9 @@
       const sets = historyEditingCopy.exercises[exIdx].sets || [];
       const lastSet = sets[sets.length - 1];
       sets.push({
-        weight: lastSet ? lastSet.weight : 10,
-        reps: lastSet ? lastSet.reps : 10,
-        pause: lastSet ? lastSet.pause : 2,
+        weight: (typeof lastSet === 'object' && lastSet) ? lastSet.weight : 10,
+        reps: (typeof lastSet === 'object' && lastSet) ? lastSet.reps : 10,
+        pause: (typeof lastSet === 'object' && lastSet) ? lastSet.pause : 2,
         done: true
       });
       historyEditingCopy.exercises[exIdx].sets = sets;
@@ -1420,4 +1468,5 @@
       renderTracker();
     });
   </script>
-</body></html>
+</body>
+</html>
