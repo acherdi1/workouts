@@ -28,7 +28,8 @@
       border-bottom: 1px solid var(--border); z-index: 10;
     }
     .header-top { display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    h1 { font-size: 1.1rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+    .commit-tag { font-size: 0.7rem; font-weight: 400; color: var(--subtext); }
     
     .sync-bar { 
       display: flex; gap: 8px; align-items: center; justify-content: space-between;
@@ -64,7 +65,11 @@
     .timing-summary {
       font-size: 0.78rem; color: var(--active); background: #112233;
       padding: 6px 10px; border-radius: 6px; border: 1px solid #1e3a8a;
-      display: flex; justify-content: space-between; font-weight: 600;
+      display: flex; justify-content: space-between; align-items: center; font-weight: 600;
+    }
+    .est-input {
+      background: transparent; border: none; border-bottom: 1px dashed var(--active);
+      color: var(--active); font-weight: 700; font-size: 0.78rem; width: 85px; text-align: right;
     }
 
     .start-banner {
@@ -89,10 +94,10 @@
     .card-controls { display: flex; gap: 4px; }
     .icon-btn {
       background: #2a2a2a; border: none; color: var(--text);
-      width: 28px; height: 28px; border-radius: 6px; font-size: 0.8rem;
+      width: 28px; height: 28px; border-radius: 6px; font-size: 0.9rem;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .icon-btn.danger { color: var(--danger); }
+    .icon-btn.danger { color: var(--danger); font-weight: bold; font-size: 1.1rem; }
 
     .ex-comment-input, .note-textarea {
       width: 100%; background: #161616; border: 1px solid #333; border-radius: 6px;
@@ -190,11 +195,13 @@
   <!-- Firebase Web SDK Compat Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script></head><body>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker</h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.0.4</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -203,13 +210,12 @@
     <div class="template-bar" id="template-bar">
       <select class="template-select" id="template-select" onchange="changeTemplate(this.value)"></select>
       <button class="btn-small" onclick="showNewTemplateModal()">+ New</button>
-      <button class="btn-small" onclick="renameCurrentTemplate()">✎ Rename</button>
-      <button class="btn-small" onclick="deleteCurrentTemplate()">🗑 Delete</button>
-      <button class="btn-small" onclick="copyWorkoutAsText()">📋 Copy Text</button>
+      <button class="btn-small" onclick="showEditTemplateModal()">✎ Edit</button>
+      <button class="btn-small" onclick="copyWorkoutAsText()">📋 Copy</button>
     </div>
     <div class="timing-summary" id="timing-summary">
       <span>Planned Rest: <b id="sum-planned-rest">0m</b></span>
-      <span>Est. Next Workout: <b id="sum-total-workout">N/A</b></span>
+      <span>Est. Next Workout: <input type="text" class="est-input" id="sum-total-workout" onchange="saveCustomEstWorkout(this.value)"></span>
     </div>
   </header>
 
@@ -271,6 +277,16 @@
     </div>
   </div>
 
+  <!-- Edit Template Choice Modal -->
+  <div class="modal-overlay" id="modal-edit-template">
+    <div class="modal-card">
+      <div class="modal-title">Edit Template</div>
+      <button class="modal-btn primary" onclick="renameCurrentTemplate()">Rename Template</button>
+      <button class="modal-btn cancel" onclick="deleteCurrentTemplate()">Delete Template</button>
+      <button class="modal-btn secondary" onclick="closeModal('modal-edit-template')">Cancel</button>
+    </div>
+  </div>
+
   <!-- Edit History Modal -->
   <div class="modal-overlay" id="modal-edit-history">
     <div class="modal-card" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
@@ -310,7 +326,7 @@
       storageBucket: "workouts-json.firebasestorage.app",    
       messagingSenderId: "103790271171",    
       appId: "1:103790271171:web:4ea41ee83a566526bea076"};
-
+    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     firebase.auth().signInAnonymously().catch(err => console.error("Auth error:", err));
@@ -343,8 +359,9 @@
     let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+    let customEstWorkout = localStorage.getItem('customEstWorkout') || '';
 
-    // Restore active workout status and start time from LocalStorage across page refreshes
+    // Restore active workout status and start time from LocalStorage
     let workoutActive = localStorage.getItem('workoutActive') === 'true';
     let savedStartTime = localStorage.getItem('workoutStartTime');
     let workoutStartTime = savedStartTime ? Number(savedStartTime) : null;
@@ -383,6 +400,7 @@
           if (ex.sets) {
             ex.sets.forEach(s => {
               delete s.note;
+              if (s.weight === undefined && s.kg !== undefined) s.weight = s.kg;
               if (s.pause >= 15) s.pause = Math.round((s.pause / 60) * 10) / 10;
             });
           }
@@ -409,7 +427,7 @@
       const statusEl = document.getElementById('sync-status');
       if (statusEl) statusEl.innerText = "🔥 Firebase: Saving...";
       
-      const payload = { workoutTemplates, activeTemplateKey, workoutHistory, updatedAt: Date.now() };
+      const payload = { workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout, updatedAt: Date.now() };
 
       db.ref('gymTrackerData').set(payload).then(() => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
@@ -427,6 +445,7 @@
             if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
             if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
             if (data.workoutHistory) workoutHistory = data.workoutHistory;
+            if (data.customEstWorkout !== undefined) customEstWorkout = data.customEstWorkout;
 
             sanitizeData();
             saveStateToLocal();
@@ -446,6 +465,7 @@
       localStorage.setItem('activeTemplateKey', activeTemplateKey);
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
       localStorage.setItem('workoutActive', workoutActive);
+      localStorage.setItem('customEstWorkout', customEstWorkout);
       if (workoutStartTime) {
         localStorage.setItem('workoutStartTime', workoutStartTime);
       } else {
@@ -459,7 +479,7 @@
     }
 
     // ==========================================
-    // 4. AUDIO ENGINE & LOCKSCREEN RESILIENCE
+    // 4. AUDIO ENGINE & TIMER PERSISTENCE
     // ==========================================
     function initAudio() {
       try {
@@ -483,7 +503,6 @@
     document.addEventListener('click', initAudio);
     document.addEventListener('touchstart', initAudio);
 
-    // Audio Data URI synth generator for lockscreen fallback
     function createBeepWavUri(freq = 880, durationMs = 400) {
       const sampleRate = 22050;
       const numSamples = Math.floor(sampleRate * (durationMs / 1000));
@@ -516,9 +535,7 @@
     async function requestWakeLock() {
       try {
         if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-      } catch (err) {
-        console.log('Wake Lock error:', err);
-      }
+      } catch (err) {}
     }
 
     function releaseWakeLock() {
@@ -540,9 +557,7 @@
             renotify: true,
             requireInteraction: true
           });
-        } catch (e) {
-          console.error("Notification error:", e);
-        }
+        } catch (e) {}
       }
     }
 
@@ -554,7 +569,6 @@
       function pulse() {
         if (!alarmPlaying || count >= 6) return;
 
-        // Web Audio API pulse
         try {
           if (audioCtx) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -568,17 +582,13 @@
             osc.start(audioCtx.currentTime);
             osc.stop(audioCtx.currentTime + 0.35);
           }
-        } catch (e) {
-          console.error("Audio synth error:", e);
-        }
+        } catch (e) {}
 
-        // HTML5 Audio fallback
         try {
           const audioEl = new Audio(count % 2 === 0 ? alarmAudioUriLow : alarmAudioUriHigh);
           audioEl.play().catch(() => {});
         } catch (e) {}
 
-        // Vibration
         if ("vibrate" in navigator) {
           try { navigator.vibrate([300, 100, 300]); } catch(e){}
         }
@@ -588,18 +598,6 @@
       }
       pulse();
     }
-
-    // Reactivate timer/sound when user unlocks screen or returns to page
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        if (timerTargetEnd) updateTimerLoop();
-      }
-    });
-    window.addEventListener('pageshow', () => {
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-      if (timerTargetEnd) updateTimerLoop();
-    });
 
     function startTimer(minutes, exIdx = null) {
       initAudio();
@@ -614,12 +612,30 @@
       timerTotalSec = seconds;
       timerTargetEnd = Date.now() + (seconds * 1000);
 
+      localStorage.setItem('timerTargetEnd', timerTargetEnd);
+      localStorage.setItem('timerTotalSec', timerTotalSec);
+      if (exIdx !== null) localStorage.setItem('activeTimerExIdx', exIdx);
+
       const timerBar = document.getElementById('timer-bar');
       timerBar.classList.remove('timer-done', 'timer-warning');
       document.getElementById('timer-label').innerText = "RESTING...";
 
       timerWorker.postMessage('start');
       updateTimerLoop();
+    }
+
+    function restoreSavedTimer() {
+      const savedTarget = localStorage.getItem('timerTargetEnd');
+      const savedTotal = localStorage.getItem('timerTotalSec');
+      const savedExIdx = localStorage.getItem('activeTimerExIdx');
+
+      if (savedTarget) {
+        timerTargetEnd = Number(savedTarget);
+        timerTotalSec = Number(savedTotal) || 60;
+        activeTimerExIdx = savedExIdx !== null ? Number(savedExIdx) : null;
+        timerWorker.postMessage('start');
+        updateTimerLoop();
+      }
     }
 
     function markTimerExerciseFinished() {
@@ -673,6 +689,8 @@
       if (!timerTargetEnd) return;
       timerTargetEnd += sec * 1000;
       timerTotalSec += sec;
+      localStorage.setItem('timerTargetEnd', timerTargetEnd);
+      localStorage.setItem('timerTotalSec', timerTotalSec);
       updateTimerLoop();
     }
 
@@ -684,6 +702,10 @@
       alarmPlaying = false;
       releaseWakeLock();
 
+      localStorage.removeItem('timerTargetEnd');
+      localStorage.removeItem('timerTotalSec');
+      localStorage.removeItem('activeTimerExIdx');
+
       const timerBar = document.getElementById('timer-bar');
       timerBar.classList.remove('timer-done', 'timer-warning');
       timerBar.style.background = 'var(--timer-bg)';
@@ -691,9 +713,23 @@
       document.getElementById('timer-label').innerText = "REST TIMER";
     }
 
+    // Sync timer when coming back to browser
+    const handleWakeSync = () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      if (timerTargetEnd) updateTimerLoop();
+      else restoreSavedTimer();
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) handleWakeSync(); });
+    window.addEventListener('pageshow', handleWakeSync);
+
     // ==========================================
-    // 5. TIMING CALCULATIONS
+    // 5. TIMING CALCULATIONS & EDITABLE EST
     // ==========================================
+    function saveCustomEstWorkout(val) {
+      customEstWorkout = val;
+      saveState();
+    }
+
     function calculateWorkoutTimings() {
       const currentList = workoutTemplates[activeTemplateKey] || [];
       let totalPlannedRestMin = 0;
@@ -706,39 +742,49 @@
         }
       });
 
-      const lastSession = workoutHistory.find(h => h.templateName === activeTemplateKey);
-      let estWorkoutStr = "N/A";
-
-      if (lastSession) {
-        if (lastSession.totalDurationMin) {
-          estWorkoutStr = `${lastSession.totalDurationMin}m`;
-        } else if (lastSession.startTime && lastSession.endTime && lastSession.startTime !== 'N/A') {
-          estWorkoutStr = `${lastSession.startTime} ➔ ${lastSession.endTime}`;
+      const estInput = document.getElementById('sum-total-workout');
+      if (estInput) {
+        if (customEstWorkout) {
+          estInput.value = customEstWorkout;
+        } else {
+          const lastSession = workoutHistory.find(h => h.templateName === activeTemplateKey);
+          if (lastSession) {
+            if (lastSession.totalDurationMin) {
+              estInput.value = `${lastSession.totalDurationMin}m`;
+            } else if (lastSession.startTime && lastSession.endTime && lastSession.startTime !== 'N/A') {
+              estInput.value = `${lastSession.startTime} - ${lastSession.endTime}`;
+            }
+          } else {
+            estInput.value = "N/A";
+          }
         }
       }
 
       document.getElementById('sum-planned-rest').innerText = `${Math.round(totalPlannedRestMin * 10) / 10}m`;
-      document.getElementById('sum-total-workout').innerText = estWorkoutStr;
     }
 
     // ==========================================
     // 6. WORKOUT CONTROL FLOW
     // ==========================================
     function toggleWorkoutStart() {
-      workoutActive = !workoutActive;
-
       if (workoutActive) {
-        workoutStartTime = Date.now();
-        // Clear old checks when starting fresh session
-        const currentList = workoutTemplates[activeTemplateKey] || [];
-        currentList.forEach(ex => {
-          if (ex.sets) ex.sets.forEach(s => s.done = false);
-        });
+        // Cancelling active workout -> reset boxes
+        if (confirm("Cancel current active workout? All checked boxes will be reset.")) {
+          workoutActive = false;
+          workoutStartTime = null;
+          const currentList = workoutTemplates[activeTemplateKey] || [];
+          currentList.forEach(ex => {
+            if (ex.sets) ex.sets.forEach(s => s.done = false);
+          });
+          saveState();
+          renderTracker();
+        }
       } else {
-        workoutStartTime = null;
+        workoutActive = true;
+        workoutStartTime = Date.now();
+        saveState();
+        renderTracker();
       }
-      saveState();
-      renderTracker();
     }
 
     function finishWorkout() {
@@ -749,20 +795,36 @@
       const now = new Date();
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
+      // Deep copy workout exercises & exact weights/reps at time of completion
+      const savedExercises = currentList.map(ex => {
+        const exCopy = { name: ex.name, comment: ex.comment || '', cardio: !!ex.cardio, text: ex.text || '' };
+        if (ex.sets) {
+          exCopy.sets = ex.sets.map(s => ({
+            weight: Number((s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0)),
+            reps: Number(s.reps || 0),
+            pause: Number(s.pause || 2),
+            done: !!s.done
+          }));
+        }
+        return exCopy;
+      });
+
+      const dateStrFormatted = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
       const historyItem = {
         id: Date.now(),
         templateName: activeTemplateKey,
-        dateStr: now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        dateStr: dateStrFormatted,
         timestamp: Date.now(),
         startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A',
         endTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         totalDurationMin: workoutStartTime ? Math.max(1, Math.round((Date.now() - workoutStartTime) / 60000)) : 0,
-        exercises: JSON.parse(JSON.stringify(currentList))
+        exercises: savedExercises
       };
 
       workoutHistory.unshift(historyItem);
 
-      // Reset checked states for next session
+      // Clean checkmarks for next session
       currentList.forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
@@ -777,7 +839,7 @@
     }
 
     function resetWorkout() {
-      if (confirm("Reset all checks and uncheck all sets?")) {
+      if (confirm("Uncheck all sets in this template?")) {
         const currentList = workoutTemplates[activeTemplateKey] || [];
         currentList.forEach(ex => {
           if (ex.sets) ex.sets.forEach(s => s.done = false);
@@ -789,7 +851,7 @@
 
     function copyWorkoutAsText() {
       const now = new Date();
-      const dateStr = now.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dateStr = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
       let text = `🏋️ ${activeTemplateKey} - ${dateStr}\n`;
@@ -806,7 +868,8 @@
           if (ex.comment) text += `Note: ${ex.comment}\n`;
           if (ex.sets) {
             ex.sets.forEach((s) => {
-              text += `  • ${s.weight}kg × ${s.reps} reps | ${s.pause}m rest ${s.done ? '[✓]' : ''}\n`;
+              const w = (s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0);
+              text += `  • ${w}kg × ${s.reps || 0} reps | ${s.pause || 2}m rest ${s.done ? '[✓]' : ''}\n`;
             });
           }
         }
@@ -851,6 +914,7 @@
     }
 
     function showNewTemplateModal() { openModal('modal-add-template'); }
+    function showEditTemplateModal() { openModal('modal-edit-template'); }
 
     function confirmCreateTemplate(mode) {
       const nameInput = document.getElementById('new-template-name');
@@ -883,6 +947,7 @@
     }
 
     function renameCurrentTemplate() {
+      closeModal('modal-edit-template');
       const newName = prompt("Rename template:", activeTemplateKey);
       if (!newName || !newName.trim() || newName.trim() === activeTemplateKey) return;
       const trimmed = newName.trim();
@@ -898,6 +963,7 @@
     }
 
     function deleteCurrentTemplate() {
+      closeModal('modal-edit-template');
       const keys = Object.keys(workoutTemplates);
       if (keys.length <= 1) {
         alert("You must keep at least one template.");
@@ -1065,7 +1131,7 @@
             <div class="card-controls">
               <button class="icon-btn" title="Move Up" onclick="moveExercise(${exIdx}, -1)">▲</button>
               <button class="icon-btn" title="Move Down" onclick="moveExercise(${exIdx}, 1)">▼</button>
-              <button class="icon-btn danger" title="Delete Exercise" onclick="deleteExercise(${exIdx})">🗑</button>
+              <button class="icon-btn danger" title="Delete Exercise" onclick="deleteExercise(${exIdx})">×</button>
             </div>
           </div>
         `;
@@ -1081,23 +1147,24 @@
 
           if (ex.sets) {
             ex.sets.forEach((set, setIdx) => {
+              const weightVal = (set.weight !== undefined && set.weight !== null) ? set.weight : (set.kg !== undefined ? set.kg : 0);
               cardContent += `
                 <div class="set-row ${set.done ? 'completed' : ''}">
                   <div style="font-size:0.75rem; color:var(--subtext); text-align:center; font-weight:600;">#${setIdx + 1}</div>
                   <div class="val-box">
-                    <span class="val-label">WEIGHT (KG)</span>
-                    <input type="number" class="val-input" value="${set.weight}" onchange="updateVal(${exIdx}, ${setIdx}, 'weight', this.value)">
+                    <span class="val-label">KG</span>
+                    <input type="number" class="val-input" value="${weightVal}" onchange="updateVal(${exIdx}, ${setIdx}, 'weight', this.value)">
                   </div>
                   <div class="val-box">
                     <span class="val-label">REPS</span>
-                    <input type="number" class="val-input" value="${set.reps}" onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
+                    <input type="number" class="val-input" value="${set.reps || 0}" onchange="updateVal(${exIdx}, ${setIdx}, 'reps', this.value)">
                   </div>
                   <div class="val-box">
                     <span class="val-label">REST (MIN)</span>
-                    <input type="number" step="0.5" class="val-input" value="${set.pause}" onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
+                    <input type="number" step="0.5" class="val-input" value="${set.pause || 2}" onchange="updateVal(${exIdx}, ${setIdx}, 'pause', this.value)">
                   </div>
                   <button class="check-btn" onclick="toggleSet(${exIdx}, ${setIdx})">${set.done ? '✓' : ''}</button>
-                  <button class="icon-btn danger" style="width:24px; height:24px; font-size:0.7rem;" title="Delete Set" onclick="deleteSet(${exIdx}, ${setIdx})">×</button>
+                  <button class="icon-btn danger" style="width:24px; height:24px;" title="Delete Set" onclick="deleteSet(${exIdx}, ${setIdx})">×</button>
                 </div>
               `;
             });
@@ -1143,18 +1210,22 @@
               exercisesHtml += `<div class="history-set-line">${escapeHtml(ex.text)}</div>`;
             } else if (ex.sets) {
               ex.sets.forEach((s, sIdx) => {
-                exercisesHtml += `<div class="history-set-line">Set ${sIdx + 1}: ${s.weight}kg × ${s.reps} reps ${s.done ? '✓' : ''}</div>`;
+                const kgVal = (s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0);
+                const repsVal = (s.reps !== undefined && s.reps !== null) ? s.reps : 0;
+                exercisesHtml += `<div class="history-set-line">Set ${sIdx + 1}: ${kgVal}kg × ${repsVal} reps ${s.done ? '✓' : ''}</div>`;
               });
             }
           });
         }
 
+        const dateDisplay = item.dateStr || (item.timestamp ? new Date(item.timestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown Date');
+
         card.innerHTML = `
           <div class="history-header">
-            <span class="history-date">${escapeHtml(item.templateName || 'Workout')} - ${escapeHtml(item.dateStr || '')}</span>
+            <span class="history-date">${escapeHtml(item.templateName || 'Workout')} - ${escapeHtml(dateDisplay)}</span>
             <div>
               <button class="btn-small" style="padding:4px 8px; margin-right:4px;" onclick="editHistoryItem(${index})">✎ Edit</button>
-              <button class="btn-small" style="padding:4px 8px; color:var(--danger); border-color:var(--danger);" onclick="deleteHistoryItem(${index})">🗑</button>
+              <button class="btn-small" style="padding:4px 8px; color:var(--danger); border-color:var(--danger);" onclick="deleteHistoryItem(${index})">×</button>
             </div>
           </div>
           <div class="history-duration">⏱️ Duration: ${item.totalDurationMin || 0} min (${item.startTime || 'N/A'} ➔ ${item.endTime || 'N/A'})</div>
@@ -1171,6 +1242,20 @@
     function editHistoryItem(index) {
       editingHistoryIndex = index;
       historyEditingCopy = JSON.parse(JSON.stringify(workoutHistory[index]));
+
+      // Pre-fill fallback set variables if legacy structure
+      if (historyEditingCopy.exercises) {
+        historyEditingCopy.exercises.forEach(ex => {
+          if (ex.sets) {
+            ex.sets.forEach(s => {
+              if (s.weight === undefined && s.kg !== undefined) s.weight = s.kg;
+              if (s.weight === undefined) s.weight = 0;
+              if (s.reps === undefined) s.reps = 0;
+              if (s.pause === undefined) s.pause = 2;
+            });
+          }
+        });
+      }
 
       document.getElementById('edit-hist-date').value = historyEditingCopy.dateStr || '';
       document.getElementById('edit-hist-duration').value = historyEditingCopy.totalDurationMin || 0;
@@ -1194,7 +1279,7 @@
         let html = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px;">
             <input type="text" value="${escapeHtml(ex.name || '')}" onchange="historyEditingCopy.exercises[${exIdx}].name = this.value" style="background:#2a2a2a; border:1px solid var(--border); color:#fff; padding:6px; border-radius:6px; font-weight:bold; flex:1; font-size:0.85rem;">
-            <button onclick="deleteHistExercise(${exIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">Delete</button>
+            <button onclick="deleteHistExercise(${exIdx})" style="background:transparent; border:1px solid var(--danger); color:var(--danger); padding:4px 8px; border-radius:6px; font-size:0.75rem; cursor:pointer;">×</button>
           </div>
         `;
 
@@ -1316,7 +1401,7 @@
 
     function exportToFile() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        workoutTemplates, activeTemplateKey, workoutHistory
+        workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout
       }, null, 2));
       const dlAnchorElem = document.createElement('a');
       dlAnchorElem.setAttribute("href", dataStr);
@@ -1334,6 +1419,7 @@
           if (parsed.workoutTemplates) workoutTemplates = parsed.workoutTemplates;
           if (parsed.activeTemplateKey) activeTemplateKey = parsed.activeTemplateKey;
           if (parsed.workoutHistory) workoutHistory = parsed.workoutHistory;
+          if (parsed.customEstWorkout !== undefined) customEstWorkout = parsed.customEstWorkout;
           sanitizeData();
           saveState();
           renderTracker();
@@ -1352,6 +1438,7 @@
     // 12. INITIALIZATION
     // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
+      restoreSavedTimer();
       renderTracker();
     });
   </script>
