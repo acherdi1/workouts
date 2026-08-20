@@ -302,15 +302,14 @@
     // ==========================================
     // 1. FIREBASE CONFIGURATION
     // ==========================================
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+    const firebaseConfig = {    
+      apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",    
+      authDomain: "workouts-json.firebaseapp.com",    
+      databaseURL: "https://workouts-json-default-rtdb.europe-west1.firebasedatabase.app",    
+      projectId: "workouts-json",    
+      storageBucket: "workouts-json.firebasestorage.app",    
+      messagingSenderId: "103790271171",    
+      appId: "1:103790271171:web:4ea41ee83a566526bea076"};
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -345,18 +344,34 @@
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
 
-    // FIX #3: Restore active workout status and start time from LocalStorage across page refreshes
+    // Restore active workout status and start time from LocalStorage across page refreshes
     let workoutActive = localStorage.getItem('workoutActive') === 'true';
     let savedStartTime = localStorage.getItem('workoutStartTime');
     let workoutStartTime = savedStartTime ? Number(savedStartTime) : null;
 
     let timerTargetEnd = null;
     let timerTotalSec = 0;
-    let timerInterval = null;
     let activeTimerExIdx = null;
     let audioCtx = null;
     let alarmPlaying = false;
     let wakeLock = null;
+
+    // Web Worker for background-resilient timers
+    const timerWorkerCode = `
+      let interval = null;
+      onmessage = function(e) {
+        if (e.data === 'start') {
+          if (interval) clearInterval(interval);
+          interval = setInterval(() => postMessage('tick'), 250);
+        } else if (e.data === 'stop') {
+          if (interval) clearInterval(interval);
+        }
+      };
+    `;
+    const timerWorker = new Worker(URL.createObjectURL(new Blob([timerWorkerCode], { type: 'application/javascript' })));
+    timerWorker.onmessage = function() {
+      updateTimerLoop();
+    };
 
     function sanitizeData() {
       Object.keys(workoutTemplates).forEach(key => {
@@ -444,7 +459,7 @@
     }
 
     // ==========================================
-    // 4. AUDIO ENGINE & LOCKSCREEN FIXES (FIX #1)
+    // 4. AUDIO ENGINE & LOCKSCREEN RESILIENCE
     // ==========================================
     function initAudio() {
       try {
@@ -468,7 +483,7 @@
     document.addEventListener('click', initAudio);
     document.addEventListener('touchstart', initAudio);
 
-    // FIX #1: Audio Data URI synth generator for lockscreen fallback
+    // Audio Data URI synth generator for lockscreen fallback
     function createBeepWavUri(freq = 880, durationMs = 400) {
       const sampleRate = 22050;
       const numSamples = Math.floor(sampleRate * (durationMs / 1000));
@@ -539,7 +554,7 @@
       function pulse() {
         if (!alarmPlaying || count >= 6) return;
 
-        // 1. Web Audio API pulse
+        // Web Audio API pulse
         try {
           if (audioCtx) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -557,13 +572,13 @@
           console.error("Audio synth error:", e);
         }
 
-        // 2. HTML5 Audio fallback (works after lock screen unlock / in background)
+        // HTML5 Audio fallback
         try {
           const audioEl = new Audio(count % 2 === 0 ? alarmAudioUriLow : alarmAudioUriHigh);
           audioEl.play().catch(() => {});
         } catch (e) {}
 
-        // 3. Vibration
+        // Vibration
         if ("vibrate" in navigator) {
           try { navigator.vibrate([300, 100, 300]); } catch(e){}
         }
@@ -574,7 +589,7 @@
       pulse();
     }
 
-    // FIX #1: Reactivate timer/sound when user unlocks screen or returns to page
+    // Reactivate timer/sound when user unlocks screen or returns to page
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -599,13 +614,12 @@
       timerTotalSec = seconds;
       timerTargetEnd = Date.now() + (seconds * 1000);
 
-      clearInterval(timerInterval);
       const timerBar = document.getElementById('timer-bar');
       timerBar.classList.remove('timer-done', 'timer-warning');
       document.getElementById('timer-label').innerText = "RESTING...";
 
+      timerWorker.postMessage('start');
       updateTimerLoop();
-      timerInterval = setInterval(updateTimerLoop, 250);
     }
 
     function markTimerExerciseFinished() {
@@ -664,7 +678,7 @@
 
     function stopTimer() {
       markTimerExerciseFinished();
-      clearInterval(timerInterval);
+      timerWorker.postMessage('stop');
       timerTargetEnd = null;
       activeTimerExIdx = null;
       alarmPlaying = false;
@@ -708,7 +722,7 @@
     }
 
     // ==========================================
-    // 6. WORKOUT CONTROL FLOW (FIX #3)
+    // 6. WORKOUT CONTROL FLOW
     // ==========================================
     function toggleWorkoutStart() {
       workoutActive = !workoutActive;
@@ -898,12 +912,11 @@
     }
 
     // ==========================================
-    // 8. CORE TRACKER & EXERCISE MANAGEMENT (FIX #2)
+    // 8. CORE TRACKER & EXERCISE MANAGEMENT
     // ==========================================
     function toggleSet(exIdx, setIdx) {
       initAudio();
 
-      // FIX #2 & #3: Auto-start workout if user checks set without pressing start button
       if (!workoutActive) {
         workoutActive = true;
         workoutStartTime = Date.now();
@@ -925,7 +938,6 @@
       renderTracker();
     }
 
-    // FIX #2: Update inputs without full DOM re-renders so scrolling/typing isn't interrupted
     function updateVal(exIdx, setIdx, field, value) {
       if (workoutTemplates[activeTemplateKey][exIdx]?.sets[setIdx]) {
         workoutTemplates[activeTemplateKey][exIdx].sets[setIdx][field] = Number(value);
@@ -1104,7 +1116,7 @@
     }
 
     // ==========================================
-    // 10. HISTORY & MANUAL EDITING (FIX #4)
+    // 10. HISTORY & MANUAL EDITING
     // ==========================================
     function renderHistory() {
       const container = document.getElementById('history-list');
