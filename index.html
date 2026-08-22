@@ -64,7 +64,6 @@
       padding: 8px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer; height: 35px;
     }
     
-    /* Compact Minutes Field matching WO height */
     .est-mins-wrapper {
       display: inline-flex; align-items: center; gap: 2px; background: #2a2a2a;
       border: 1px solid var(--border); border-radius: 8px; padding: 0 6px; height: 35px;
@@ -144,7 +143,6 @@
     .btn-reset { background: transparent; border: 1px solid var(--danger); color: var(--danger); margin-top: 8px; }
     .btn-add-ex { background: #2a2a2a; color: var(--text); border: 1px dashed var(--subtext); margin-bottom: 12px; }
 
-    /* History Layout Restored */
     .history-item {
       background: var(--card); border-radius: 12px; padding: 14px;
       margin-bottom: 12px; border: 1px solid var(--border);
@@ -162,7 +160,6 @@
     .history-sets-list { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
     .history-set-bullet { font-size: 0.85rem; color: #e2e8f0; line-height: 1.45; padding-left: 6px; }
 
-    /* Timer Bar Styles */
     #timer-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: linear-gradient(to right, var(--timer-progress) 0%, var(--timer-bg) 0%);
@@ -206,7 +203,6 @@
     .modal-btn.cancel { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
   </style>
 
-  <!-- Firebase Web SDK Compat Libraries -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -215,7 +211,7 @@
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker <span class="commit-tag">v1.0.6</span></h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.0.7</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -259,7 +255,6 @@
     <div id="history-list"></div>
   </div>
 
-  <!-- Rest Timer Bar -->
   <div id="timer-bar">
     <div class="timer-info">
       <span class="timer-label" id="timer-label">Rest Timer</span>
@@ -271,7 +266,6 @@
     </div>
   </div>
 
-  <!-- Add Exercise Modal -->
   <div class="modal-overlay" id="modal-add-ex">
     <div class="modal-card">
       <div class="modal-title">Add Exercise</div>
@@ -281,7 +275,6 @@
     </div>
   </div>
 
-  <!-- Add Template Modal -->
   <div class="modal-overlay" id="modal-add-template">
     <div class="modal-card">
       <div class="modal-title">Create New Template</div>
@@ -292,7 +285,6 @@
     </div>
   </div>
 
-  <!-- Edit Template Choice Modal -->
   <div class="modal-overlay" id="modal-edit-template">
     <div class="modal-card">
       <div class="modal-title">Edit Template</div>
@@ -302,7 +294,6 @@
     </div>
   </div>
 
-  <!-- Edit History Modal -->
   <div class="modal-overlay" id="modal-edit-history">
     <div class="modal-card" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-title">✎ Edit History Entry</div>
@@ -330,9 +321,6 @@
   </div>
 
   <script>
-    // ==========================================
-    // 1. FIREBASE CONFIGURATION
-    // ==========================================
     const firebaseConfig = {    
       apiKey: "AIzaSyDR1B2UwgyKwU2GmFc8XuqbtaV5PzuNIi0",    
       authDomain: "workouts-json.firebaseapp.com",    
@@ -346,9 +334,6 @@
     const db = firebase.database();
     firebase.auth().signInAnonymously().catch(err => console.error("Auth error:", err));
 
-    // ==========================================
-    // 2. DEFAULT WORKOUT DATA & STATE
-    // ==========================================
     const defaultTemplates = {
       "Pull-ups": [
         { name: "Warmup Routine", cardio: true, text: "5 min shoulder mobility\nLight bands" },
@@ -376,7 +361,6 @@
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
     let customEstWorkout = localStorage.getItem('customEstWorkout') || '';
 
-    // Restore active workout status and start time from LocalStorage
     let workoutActive = localStorage.getItem('workoutActive') === 'true';
     let savedStartTime = localStorage.getItem('workoutStartTime');
     let workoutStartTime = savedStartTime ? Number(savedStartTime) : null;
@@ -388,7 +372,6 @@
     let alarmPlaying = false;
     let wakeLock = null;
 
-    // Web Worker for background-resilient timers
     const timerWorkerCode = `
       let interval = null;
       onmessage = function(e) {
@@ -434,9 +417,6 @@
         .replace(/'/g, '&#039;');
     }
 
-    // ==========================================
-    // 3. FIREBASE REALTIME SYNC & LOCAL STORAGE
-    // ==========================================
     let isRemoteUpdate = false;
     function syncToFirebase() {
       const statusEl = document.getElementById('sync-status');
@@ -493,9 +473,6 @@
       if (!isRemoteUpdate) syncToFirebase();
     }
 
-    // ==========================================
-    // 4. AUDIO ENGINE & TIMER PERSISTENCE
-    // ==========================================
     function initAudio() {
       try {
         if (!audioCtx) {
@@ -517,35 +494,6 @@
     }
     document.addEventListener('click', initAudio);
     document.addEventListener('touchstart', initAudio);
-
-    function createBeepWavUri(freq = 880, durationMs = 400) {
-      const sampleRate = 22050;
-      const numSamples = Math.floor(sampleRate * (durationMs / 1000));
-      const buffer = new Uint8Array(44 + numSamples);
-      const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) buffer[offset + i] = str.charCodeAt(i); };
-      const write32 = (offset, val) => {
-        buffer[offset] = val & 0xff; buffer[offset+1] = (val >> 8) & 0xff;
-        buffer[offset+2] = (val >> 16) & 0xff; buffer[offset+3] = (val >> 24) & 0xff;
-      };
-      const write16 = (offset, val) => {
-        buffer[offset] = val & 0xff; buffer[offset+1] = (val >> 8) & 0xff;
-      };
-      writeString(0, 'RIFF'); write32(4, 36 + numSamples); writeString(8, 'WAVE');
-      writeString(12, 'fmt '); write32(16, 16); write16(20, 1); write16(22, 1);
-      write32(24, sampleRate); write32(28, sampleRate); write16(32, 1); write16(34, 8);
-      writeString(36, 'data'); write32(40, numSamples);
-      for (let i = 0; i < numSamples; i++) {
-        const t = i / sampleRate;
-        const sample = Math.sin(2 * Math.PI * freq * t);
-        buffer[44 + i] = Math.floor((sample + 1) * 127.5);
-      }
-      let binary = '';
-      for (let i = 0; i < buffer.length; i++) binary += String.fromCharCode(buffer[i]);
-      return 'data:audio/wav;base64,' + btoa(binary);
-    }
-
-    const alarmAudioUriHigh = createBeepWavUri(1046.5, 350);
-    const alarmAudioUriLow = createBeepWavUri(880, 350);
 
     async function requestWakeLock() {
       try {
@@ -582,7 +530,10 @@
       let count = 0;
 
       function pulse() {
-        if (!alarmPlaying || count >= 6) return;
+        if (!alarmPlaying || count >= 6) {
+          alarmPlaying = false; // Reset so next timers can sound correctly
+          return;
+        }
 
         try {
           if (audioCtx) {
@@ -591,17 +542,16 @@
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.type = 'triangle';
+            osc.type = 'sine';
             osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+            
+            // Soft envelope: non-intrusive sound synthesized cleanly over active music
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+            
             osc.start(audioCtx.currentTime);
             osc.stop(audioCtx.currentTime + 0.35);
           }
-        } catch (e) {}
-
-        try {
-          const audioEl = new Audio(count % 2 === 0 ? alarmAudioUriLow : alarmAudioUriHigh);
-          audioEl.play().catch(() => {});
         } catch (e) {}
 
         if ("vibrate" in navigator) {
@@ -728,7 +678,6 @@
       document.getElementById('timer-label').innerText = "REST TIMER";
     }
 
-    // Sync timer when coming back to browser
     const handleWakeSync = () => {
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       if (timerTargetEnd) updateTimerLoop();
@@ -737,9 +686,6 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) handleWakeSync(); });
     window.addEventListener('pageshow', handleWakeSync);
 
-    // ==========================================
-    // 5. ESTIMATED MINUTES FORM HANDLING
-    // ==========================================
     function saveCustomEstWorkout(val) {
       customEstWorkout = val;
       saveState();
@@ -761,9 +707,6 @@
       }
     }
 
-    // ==========================================
-    // 6. WORKOUT CONTROL FLOW
-    // ==========================================
     function toggleWorkoutStart() {
       if (workoutActive) {
         if (confirm("Cancel current active workout? All checked boxes will be reset.")) {
@@ -792,19 +735,23 @@
       const now = new Date();
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
-      // Deep copy workout exercises & exact weights/reps/rest times at time of completion
-      const savedExercises = currentList.map(ex => {
-        const exCopy = { name: ex.name, comment: ex.comment || '', cardio: !!ex.cardio, text: ex.text || '' };
-        if (ex.sets) {
-          exCopy.sets = ex.sets.map(s => ({
-            weight: Number((s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0)),
-            reps: Number(s.reps || 0),
-            pause: Number(s.pause !== undefined ? s.pause : 2),
-            done: !!s.done
-          }));
-        }
-        return exCopy;
-      });
+      // Filter only sets that are checked off (done === true)
+      const savedExercises = currentList
+        .map(ex => {
+          const exCopy = { name: ex.name, comment: ex.comment || '', cardio: !!ex.cardio, text: ex.text || '' };
+          if (ex.sets) {
+            exCopy.sets = ex.sets
+              .filter(s => s.done) // ONLY include crossed-out / checked sets
+              .map(s => ({
+                weight: Number((s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0)),
+                reps: Number(s.reps || 0),
+                pause: Number(s.pause !== undefined ? s.pause : 2),
+                done: true
+              }));
+          }
+          return exCopy;
+        })
+        .filter(ex => ex.cardio || (ex.sets && ex.sets.length > 0)); // Only keep exercises with completed sets or cardio notes
 
       const dateStrFormatted = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -821,7 +768,6 @@
 
       workoutHistory.unshift(historyItem);
 
-      // Clean checkmarks for next session
       currentList.forEach(ex => {
         if (ex.sets) ex.sets.forEach(s => s.done = false);
       });
@@ -885,9 +831,6 @@
       }
     }
 
-    // ==========================================
-    // 7. MODALS CONTROL
-    // ==========================================
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
@@ -974,9 +917,6 @@
       }
     }
 
-    // ==========================================
-    // 8. CORE TRACKER & EXERCISE MANAGEMENT
-    // ==========================================
     function toggleSet(exIdx, setIdx) {
       initAudio();
 
@@ -1073,9 +1013,6 @@
       renderTracker();
     }
 
-    // ==========================================
-    // 9. RENDER TRACKER
-    // ==========================================
     function renderTracker() {
       updateEstMinsDisplay();
 
@@ -1177,9 +1114,6 @@
       });
     }
 
-    // ==========================================
-    // 10. HISTORY & RESTORED ORIGINAL UI
-    // ==========================================
     function renderHistory() {
       const container = document.getElementById('history-list');
       if (!container) return;
@@ -1398,9 +1332,6 @@
       }
     }
 
-    // ==========================================
-    // 11. NAVIGATION & DATA IMPORT/EXPORT
-    // ==========================================
     function switchTab(tab) {
       const trackerTabBtn = document.getElementById('tab-tracker-btn');
       const historyTabBtn = document.getElementById('tab-history-btn');
@@ -1460,9 +1391,6 @@
       }
     }
 
-    // ==========================================
-    // 12. INITIALIZATION
-    // ==========================================
     window.addEventListener('DOMContentLoaded', () => {
       restoreSavedTimer();
       renderTracker();
