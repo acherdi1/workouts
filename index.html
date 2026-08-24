@@ -211,7 +211,7 @@
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker <span class="commit-tag">v1.0.7</span></h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.0.8</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -370,6 +370,7 @@
     let activeTimerExIdx = null;
     let audioCtx = null;
     let alarmPlaying = false;
+    let alarmHasFired = false;
     let wakeLock = null;
 
     const timerWorkerCode = `
@@ -492,17 +493,15 @@
         console.error("Audio init error:", e);
       }
     }
-    document.addEventListener('click', initAudio);
-    document.addEventListener('touchstart', initAudio);
+    document.addEventListener('click', () => { initAudio(); requestWakeLock(); });
+    document.addEventListener('touchstart', () => { initAudio(); requestWakeLock(); });
 
     async function requestWakeLock() {
       try {
-        if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        if ('wakeLock' in navigator && (!wakeLock || wakeLock.released)) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
       } catch (err) {}
-    }
-
-    function releaseWakeLock() {
-      if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
     }
 
     function requestNotificationPermission() {
@@ -531,7 +530,7 @@
 
       function pulse() {
         if (!alarmPlaying || count >= 6) {
-          alarmPlaying = false; // Reset so next timers can sound correctly
+          alarmPlaying = false;
           return;
         }
 
@@ -545,7 +544,6 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(count % 2 === 0 ? 880 : 1046.5, audioCtx.currentTime);
             
-            // Soft envelope: non-intrusive sound synthesized cleanly over active music
             gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
             
@@ -574,6 +572,7 @@
 
       activeTimerExIdx = exIdx;
       alarmPlaying = false;
+      alarmHasFired = false;
       timerTotalSec = seconds;
       timerTargetEnd = Date.now() + (seconds * 1000);
 
@@ -643,7 +642,8 @@
         document.getElementById('timer-display').innerText = "00:00";
         document.getElementById('timer-label').innerText = "TIME IS UP!";
 
-        if (!alarmPlaying) {
+        if (!alarmHasFired) {
+          alarmHasFired = true;
           playLoudAlarm();
           triggerLockscreenNotification();
         }
@@ -654,6 +654,7 @@
       if (!timerTargetEnd) return;
       timerTargetEnd += sec * 1000;
       timerTotalSec += sec;
+      alarmHasFired = false;
       localStorage.setItem('timerTargetEnd', timerTargetEnd);
       localStorage.setItem('timerTotalSec', timerTotalSec);
       updateTimerLoop();
@@ -665,7 +666,7 @@
       timerTargetEnd = null;
       activeTimerExIdx = null;
       alarmPlaying = false;
-      releaseWakeLock();
+      alarmHasFired = false;
 
       localStorage.removeItem('timerTargetEnd');
       localStorage.removeItem('timerTotalSec');
@@ -680,10 +681,13 @@
 
     const handleWakeSync = () => {
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      requestWakeLock();
       if (timerTargetEnd) updateTimerLoop();
       else restoreSavedTimer();
     };
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) handleWakeSync(); });
+    document.addEventListener('visibilitychange', () => { 
+      if (document.visibilityState === 'visible') handleWakeSync(); 
+    });
     window.addEventListener('pageshow', handleWakeSync);
 
     function saveCustomEstWorkout(val) {
@@ -735,13 +739,12 @@
       const now = new Date();
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
-      // Filter only sets that are checked off (done === true)
       const savedExercises = currentList
         .map(ex => {
           const exCopy = { name: ex.name, comment: ex.comment || '', cardio: !!ex.cardio, text: ex.text || '' };
           if (ex.sets) {
             exCopy.sets = ex.sets
-              .filter(s => s.done) // ONLY include crossed-out / checked sets
+              .filter(s => s.done)
               .map(s => ({
                 weight: Number((s.weight !== undefined && s.weight !== null) ? s.weight : (s.kg !== undefined ? s.kg : 0)),
                 reps: Number(s.reps || 0),
@@ -751,7 +754,7 @@
           }
           return exCopy;
         })
-        .filter(ex => ex.cardio || (ex.sets && ex.sets.length > 0)); // Only keep exercises with completed sets or cardio notes
+        .filter(ex => ex.cardio || (ex.sets && ex.sets.length > 0));
 
       const dateStrFormatted = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -1392,6 +1395,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      requestWakeLock();
       restoreSavedTimer();
       renderTracker();
     });
