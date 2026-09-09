@@ -81,19 +81,20 @@
 
     .start-banner {
       background: #1e2a1e; border: 1px solid #2e5a2e; border-radius: 10px;
-      padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
     .start-banner.active { background: #12283a; border-color: #1e4b7a; }
     .start-info { font-size: 0.85rem; font-weight: 600; }
     .auto-end-control {
-      font-size: 0.75rem; color: var(--subtext); display: flex; align-items: center; gap: 6px; cursor: pointer; margin-top: 4px;
+      font-size: 0.75rem; color: var(--subtext); display: flex; align-items: center; gap: 6px; cursor: pointer; margin-top: 2px;
     }
     .auto-end-input {
       width: 45px; background: #2a2a2a; border: 1px solid var(--border); color: #fff; border-radius: 4px; text-align: center; font-size: 0.75rem; padding: 2px 0;
     }
+
     .btn-start {
       background: var(--accent); color: #000; border: none; padding: 8px 14px;
-      border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; flex-shrink: 0;
     }
 
     .container { max-width: 600px; margin: 0 auto; padding: 12px; }
@@ -217,7 +218,7 @@
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker <span class="commit-tag">v1.0.9</span></h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.1.0</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -238,11 +239,12 @@
 
   <div class="container" id="view-tracker">
     <div class="start-banner" id="start-banner">
-      <div style="display:flex; flex-direction:column; gap:2px;">
+      <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
         <div class="start-info" id="start-info">Workout Status: Not Started</div>
+
         <label class="auto-end-control">
           <input type="checkbox" id="auto-end-toggle" onchange="toggleAutoEnd(this.checked)">
-          Autofinish in
+          Auto-finish after
           <input type="number" id="auto-end-mins" class="auto-end-input" value="90" min="1" max="300" onchange="saveAutoEndMins(this.value)"> min
         </label>
       </div>
@@ -311,9 +313,19 @@
     <div class="modal-card" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-title">✎ Edit History Entry</div>
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <label style="font-size:0.75rem; color:var(--subtext);">Date & Time:
+        <label style="font-size:0.75rem; color:var(--subtext);">Date:
           <input type="text" id="edit-hist-date" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
         </label>
+        
+        <div style="display:flex; gap:8px;">
+          <label style="flex:1; font-size:0.75rem; color:var(--subtext);">Start Time:
+            <input type="time" id="edit-hist-start-time" onchange="recalcHistDuration()" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
+          </label>
+          <label style="flex:1; font-size:0.75rem; color:var(--subtext);">End Time:
+            <input type="time" id="edit-hist-end-time" onchange="recalcHistDuration()" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
+          </label>
+        </div>
+
         <div style="display:flex; gap:8px;">
           <label style="flex:1; font-size:0.75rem; color:var(--subtext);">Duration (min):
             <input type="number" id="edit-hist-duration" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
@@ -322,6 +334,7 @@
             <input type="text" id="edit-hist-template" style="width:100%; background:#2a2a2a; border:1px solid var(--border); padding:8px; border-radius:6px; color:#fff; font-size:0.85rem;">
           </label>
         </div>
+
         <div style="font-size:0.8rem; font-weight:700; color:var(--accent); margin-top:6px;">Exercises & Sets:</div>
         <div id="edit-hist-exercises-container"></div>
         <button class="btn-small" onclick="addHistExercise()" style="margin-bottom:8px;">+ Add Exercise to History</button>
@@ -372,7 +385,18 @@
     let workoutTemplates = JSON.parse(localStorage.getItem('workoutTemplates')) || defaultTemplates;
     let activeTemplateKey = localStorage.getItem('activeTemplateKey') || Object.keys(workoutTemplates)[0];
     let workoutHistory = JSON.parse(localStorage.getItem('workoutHistory')) || [];
-    let customEstWorkout = localStorage.getItem('customEstWorkout') || '';
+
+    let customEstWorkout = {};
+    try {
+      const rawEst = localStorage.getItem('customEstWorkout');
+      if (rawEst) {
+        if (rawEst.startsWith('{')) {
+          customEstWorkout = JSON.parse(rawEst);
+        } else {
+          customEstWorkout = { [activeTemplateKey]: rawEst };
+        }
+      }
+    } catch(e) { customEstWorkout = {}; }
 
     let workoutActive = localStorage.getItem('workoutActive') === 'true';
     let savedStartTime = localStorage.getItem('workoutStartTime');
@@ -435,6 +459,15 @@
         .replace(/'/g, '&#039;');
     }
 
+    function formatTimeHHMM(timestamp) {
+      if (!timestamp) return '';
+      const d = new Date(timestamp);
+      if (isNaN(d.getTime())) return '';
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
     let isRemoteUpdate = false;
     function syncToFirebase() {
       const statusEl = document.getElementById('sync-status');
@@ -461,7 +494,10 @@
             if (data.workoutTemplates) workoutTemplates = data.workoutTemplates;
             if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
             if (data.workoutHistory) workoutHistory = data.workoutHistory;
-            if (data.customEstWorkout !== undefined) customEstWorkout = data.customEstWorkout;
+            if (data.customEstWorkout !== undefined) {
+              if (typeof data.customEstWorkout === 'object') customEstWorkout = data.customEstWorkout;
+              else customEstWorkout = { [activeTemplateKey]: data.customEstWorkout };
+            }
             if (data.autoEndEnabled !== undefined) autoEndEnabled = data.autoEndEnabled;
             if (data.autoEndMins !== undefined) autoEndMins = data.autoEndMins;
 
@@ -483,7 +519,7 @@
       localStorage.setItem('activeTemplateKey', activeTemplateKey);
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
       localStorage.setItem('workoutActive', workoutActive);
-      localStorage.setItem('customEstWorkout', customEstWorkout);
+      localStorage.setItem('customEstWorkout', JSON.stringify(customEstWorkout));
       localStorage.setItem('autoEndEnabled', autoEndEnabled);
       localStorage.setItem('autoEndMins', autoEndMins);
       if (lastActivityTime) localStorage.setItem('lastActivityTime', lastActivityTime);
@@ -738,7 +774,10 @@
     window.addEventListener('pageshow', handleWakeSync);
 
     function saveCustomEstWorkout(val) {
-      customEstWorkout = val;
+      if (typeof customEstWorkout !== 'object' || customEstWorkout === null) {
+        customEstWorkout = {};
+      }
+      customEstWorkout[activeTemplateKey] = val;
       saveState();
     }
 
@@ -746,8 +785,10 @@
       const estInput = document.getElementById('est-mins-input');
       if (!estInput) return;
 
-      if (customEstWorkout !== undefined && customEstWorkout !== null && customEstWorkout !== '') {
-        estInput.value = customEstWorkout;
+      const templateEst = (typeof customEstWorkout === 'object' && customEstWorkout) ? customEstWorkout[activeTemplateKey] : undefined;
+
+      if (templateEst !== undefined && templateEst !== null && templateEst !== '') {
+        estInput.value = templateEst;
       } else {
         const lastSession = workoutHistory.find(h => h.templateName === activeTemplateKey);
         if (lastSession && lastSession.totalDurationMin) {
@@ -785,16 +826,22 @@
         return;
       }
 
+      let startTimestamp = workoutStartTime || Date.now();
       let endTimestamp = Date.now();
+
       if (isAutoFinish) {
-        if (lastActivityTime && lastActivityTime >= workoutStartTime) {
+        if (lastActivityTime && lastActivityTime >= startTimestamp) {
           endTimestamp = lastActivityTime;
-        } else if (workoutStartTime) {
-          endTimestamp = workoutStartTime;
+        } else if (startTimestamp) {
+          endTimestamp = startTimestamp;
         }
       }
 
-      const endDateObj = new Date(endTimestamp);
+      if (endTimestamp < startTimestamp) {
+        endTimestamp += 24 * 60 * 60 * 1000;
+      }
+
+      const totalDurationMin = Math.max(0, Math.round((endTimestamp - startTimestamp) / 60000));
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
       const savedExercises = currentList
@@ -814,16 +861,16 @@
         })
         .filter(ex => ex.cardio || (ex.sets && ex.sets.length > 0));
 
-      const dateStrFormatted = new Date(workoutStartTime || endTimestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dateStrFormatted = new Date(startTimestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
       const historyItem = {
         id: Date.now(),
         templateName: activeTemplateKey,
         dateStr: dateStrFormatted,
         timestamp: endTimestamp,
-        startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A',
-        endTime: endDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        totalDurationMin: workoutStartTime ? Math.max(0, Math.round((endTimestamp - workoutStartTime) / 60000)) : 0,
+        startTime: formatTimeHHMM(startTimestamp) || 'N/A',
+        endTime: formatTimeHHMM(endTimestamp) || 'N/A',
+        totalDurationMin: totalDurationMin,
         exercises: savedExercises
       };
 
@@ -841,7 +888,7 @@
       stopTimer();
 
       if (isAutoFinish) {
-        alert("⏰ Autofinish! Workout automatically finished and saved to history.");
+        alert("⏰ Workout time expired! Workout automatically finished and saved.");
       } else {
         alert("Workout saved to history!");
       }
@@ -867,7 +914,7 @@
 
       let text = `🏋️ ${activeTemplateKey} - ${dateStr}\n`;
       if (workoutStartTime) {
-        text += `⏱️ Time: ${new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} ➔ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}\n`;
+        text += `⏱️ Time: ${formatTimeHHMM(workoutStartTime)} ➔ ${formatTimeHHMM(now)}\n`;
       }
       text += `------------------------------\n`;
 
@@ -965,6 +1012,10 @@
       }
       workoutTemplates[trimmed] = workoutTemplates[activeTemplateKey];
       delete workoutTemplates[activeTemplateKey];
+      if (customEstWorkout[activeTemplateKey]) {
+        customEstWorkout[trimmed] = customEstWorkout[activeTemplateKey];
+        delete customEstWorkout[activeTemplateKey];
+      }
       activeTemplateKey = trimmed;
       saveState();
       renderTracker();
@@ -979,6 +1030,7 @@
       }
       if (confirm(`Delete template "${activeTemplateKey}"?`)) {
         delete workoutTemplates[activeTemplateKey];
+        delete customEstWorkout[activeTemplateKey];
         activeTemplateKey = Object.keys(workoutTemplates)[0];
         saveState();
         renderTracker();
@@ -1109,9 +1161,8 @@
 
       if (workoutActive) {
         banner.classList.add('active');
-        const startStr = workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'Active';
-        info.innerText = `Active since ${startStr}`;
-        btn.innerText = "Cancel Workout";
+        info.innerText = `Active Session`;
+        btn.innerText = "Cancel";
       } else {
         banner.classList.remove('active');
         info.innerText = "Workout Status: Not Started";
@@ -1240,7 +1291,7 @@
         const dateDisplay = item.dateStr || (item.timestamp ? new Date(item.timestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown Date');
         const startTimeStr = item.startTime || 'N/A';
         const endTimeStr = item.endTime || 'N/A';
-        const durationMinStr = item.totalDurationMin || 0;
+        const durationMinStr = item.totalDurationMin !== undefined ? item.totalDurationMin : 0;
 
         card.innerHTML = `
           <div class="history-header">
@@ -1281,11 +1332,28 @@
       }
 
       document.getElementById('edit-hist-date').value = historyEditingCopy.dateStr || '';
-      document.getElementById('edit-hist-duration').value = historyEditingCopy.totalDurationMin || 0;
+      document.getElementById('edit-hist-start-time').value = historyEditingCopy.startTime || '';
+      document.getElementById('edit-hist-end-time').value = historyEditingCopy.endTime || '';
+      document.getElementById('edit-hist-duration').value = historyEditingCopy.totalDurationMin !== undefined ? historyEditingCopy.totalDurationMin : 0;
       document.getElementById('edit-hist-template').value = historyEditingCopy.templateName || '';
 
       renderHistoryEditExercises();
       openModal('modal-edit-history');
+    }
+
+    function recalcHistDuration() {
+      const startVal = document.getElementById('edit-hist-start-time').value;
+      const endVal = document.getElementById('edit-hist-end-time').value;
+      if (startVal && endVal) {
+        const [sh, sm] = startVal.split(':').map(Number);
+        const [eh, em] = endVal.split(':').map(Number);
+        if (!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)) {
+          let startMin = sh * 60 + sm;
+          let endMin = eh * 60 + em;
+          if (endMin < startMin) endMin += 24 * 60;
+          document.getElementById('edit-hist-duration').value = endMin - startMin;
+        }
+      }
     }
 
     function renderHistoryEditExercises() {
@@ -1388,6 +1456,8 @@
       if (editingHistoryIndex === null || !historyEditingCopy) return;
 
       historyEditingCopy.dateStr = document.getElementById('edit-hist-date').value;
+      historyEditingCopy.startTime = document.getElementById('edit-hist-start-time').value;
+      historyEditingCopy.endTime = document.getElementById('edit-hist-end-time').value;
       historyEditingCopy.totalDurationMin = Number(document.getElementById('edit-hist-duration').value);
       historyEditingCopy.templateName = document.getElementById('edit-hist-template').value;
 
@@ -1451,7 +1521,10 @@
           if (parsed.workoutTemplates) workoutTemplates = parsed.workoutTemplates;
           if (parsed.activeTemplateKey) activeTemplateKey = parsed.activeTemplateKey;
           if (parsed.workoutHistory) workoutHistory = parsed.workoutHistory;
-          if (parsed.customEstWorkout !== undefined) customEstWorkout = parsed.customEstWorkout;
+          if (parsed.customEstWorkout !== undefined) {
+            if (typeof parsed.customEstWorkout === 'object') customEstWorkout = parsed.customEstWorkout;
+            else customEstWorkout = { [activeTemplateKey]: parsed.customEstWorkout };
+          }
           if (parsed.autoEndEnabled !== undefined) autoEndEnabled = parsed.autoEndEnabled;
           if (parsed.autoEndMins !== undefined) autoEndMins = parsed.autoEndMins;
           sanitizeData();
