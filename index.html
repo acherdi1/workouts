@@ -85,6 +85,12 @@
     }
     .start-banner.active { background: #12283a; border-color: #1e4b7a; }
     .start-info { font-size: 0.85rem; font-weight: 600; }
+    .auto-end-control {
+      font-size: 0.75rem; color: var(--subtext); display: flex; align-items: center; gap: 6px; cursor: pointer; margin-top: 4px;
+    }
+    .auto-end-input {
+      width: 45px; background: #2a2a2a; border: 1px solid var(--border); color: #fff; border-radius: 4px; text-align: center; font-size: 0.75rem; padding: 2px 0;
+    }
     .btn-start {
       background: var(--accent); color: #000; border: none; padding: 8px 14px;
       border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;
@@ -211,7 +217,7 @@
 
   <header>
     <div class="header-top">
-      <h1>Gym Tracker <span class="commit-tag">v1.0.8</span></h1>
+      <h1>Gym Tracker <span class="commit-tag">v1.0.9</span></h1>
       <div class="nav-tabs">
         <button class="tab-btn active" id="tab-tracker-btn" onclick="switchTab('tracker')">Workout</button>
         <button class="tab-btn" id="tab-history-btn" onclick="switchTab('history')">History</button>
@@ -232,13 +238,20 @@
 
   <div class="container" id="view-tracker">
     <div class="start-banner" id="start-banner">
-      <div class="start-info" id="start-info">Workout Status: Not Started</div>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div class="start-info" id="start-info">Workout Status: Not Started</div>
+        <label class="auto-end-control">
+          <input type="checkbox" id="auto-end-toggle" onchange="toggleAutoEnd(this.checked)">
+          Автозавершение через
+          <input type="number" id="auto-end-mins" class="auto-end-input" value="90" min="1" max="300" onchange="saveAutoEndMins(this.value)"> мин
+        </label>
+      </div>
       <button class="btn-start" id="btn-start-toggle" onclick="toggleWorkoutStart()">Start Workout</button>
     </div>
 
     <div id="workout-list"></div>
     <button class="action-btn btn-add-ex" onclick="showAddExModal()">+ Add Exercise</button>
-    <button class="action-btn btn-finish" onclick="finishWorkout()">Finish & Save Workout</button>
+    <button class="action-btn btn-finish" onclick="finishWorkout(false)">Finish & Save Workout</button>
     <button class="action-btn btn-reset" onclick="resetWorkout()">Reset Unsaved Checks</button>
   </div>
 
@@ -364,6 +377,10 @@
     let workoutActive = localStorage.getItem('workoutActive') === 'true';
     let savedStartTime = localStorage.getItem('workoutStartTime');
     let workoutStartTime = savedStartTime ? Number(savedStartTime) : null;
+    let lastActivityTime = Number(localStorage.getItem('lastActivityTime')) || null;
+
+    let autoEndEnabled = localStorage.getItem('autoEndEnabled') === 'true';
+    let autoEndMins = Number(localStorage.getItem('autoEndMins')) || 90;
 
     let timerTargetEnd = null;
     let timerTotalSec = 0;
@@ -423,7 +440,10 @@
       const statusEl = document.getElementById('sync-status');
       if (statusEl) statusEl.innerText = "🔥 Firebase: Saving...";
       
-      const payload = { workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout, updatedAt: Date.now() };
+      const payload = { 
+        workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout, 
+        autoEndEnabled, autoEndMins, updatedAt: Date.now() 
+      };
 
       db.ref('gymTrackerData').set(payload).then(() => {
         if (statusEl) statusEl.innerText = "🔥 Firebase: Synced";
@@ -442,6 +462,8 @@
             if (data.activeTemplateKey) activeTemplateKey = data.activeTemplateKey;
             if (data.workoutHistory) workoutHistory = data.workoutHistory;
             if (data.customEstWorkout !== undefined) customEstWorkout = data.customEstWorkout;
+            if (data.autoEndEnabled !== undefined) autoEndEnabled = data.autoEndEnabled;
+            if (data.autoEndMins !== undefined) autoEndMins = data.autoEndMins;
 
             sanitizeData();
             saveStateToLocal();
@@ -462,6 +484,11 @@
       localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
       localStorage.setItem('workoutActive', workoutActive);
       localStorage.setItem('customEstWorkout', customEstWorkout);
+      localStorage.setItem('autoEndEnabled', autoEndEnabled);
+      localStorage.setItem('autoEndMins', autoEndMins);
+      if (lastActivityTime) localStorage.setItem('lastActivityTime', lastActivityTime);
+      else localStorage.removeItem('lastActivityTime');
+      
       if (workoutStartTime) {
         localStorage.setItem('workoutStartTime', workoutStartTime);
       } else {
@@ -473,6 +500,26 @@
       saveStateToLocal();
       if (!isRemoteUpdate) syncToFirebase();
     }
+
+    function toggleAutoEnd(checked) {
+      autoEndEnabled = checked;
+      saveState();
+    }
+
+    function saveAutoEndMins(val) {
+      autoEndMins = Math.max(1, Number(val) || 90);
+      saveState();
+    }
+
+    function checkAutoFinish() {
+      if (workoutActive && autoEndEnabled && workoutStartTime) {
+        const elapsedMs = Date.now() - workoutStartTime;
+        if (elapsedMs >= autoEndMins * 60 * 1000) {
+          finishWorkout(true);
+        }
+      }
+    }
+    setInterval(checkAutoFinish, 1000);
 
     function initAudio() {
       try {
@@ -716,6 +763,7 @@
         if (confirm("Cancel current active workout? All checked boxes will be reset.")) {
           workoutActive = false;
           workoutStartTime = null;
+          lastActivityTime = null;
           const currentList = workoutTemplates[activeTemplateKey] || [];
           currentList.forEach(ex => {
             if (ex.sets) ex.sets.forEach(s => s.done = false);
@@ -726,17 +774,27 @@
       } else {
         workoutActive = true;
         workoutStartTime = Date.now();
+        lastActivityTime = null;
         saveState();
         renderTracker();
       }
     }
 
-    function finishWorkout() {
-      if (!workoutActive && !confirm("Workout is not marked as started. Finish anyway and save to history?")) {
+    function finishWorkout(isAutoFinish = false) {
+      if (!isAutoFinish && !workoutActive && !confirm("Workout is not marked as started. Finish anyway and save to history?")) {
         return;
       }
 
-      const now = new Date();
+      let endTimestamp = Date.now();
+      if (isAutoFinish) {
+        if (lastActivityTime && lastActivityTime >= workoutStartTime) {
+          endTimestamp = lastActivityTime;
+        } else if (workoutStartTime) {
+          endTimestamp = workoutStartTime;
+        }
+      }
+
+      const endDateObj = new Date(endTimestamp);
       const currentList = workoutTemplates[activeTemplateKey] || [];
 
       const savedExercises = currentList
@@ -756,16 +814,16 @@
         })
         .filter(ex => ex.cardio || (ex.sets && ex.sets.length > 0));
 
-      const dateStrFormatted = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      const dateStrFormatted = new Date(workoutStartTime || endTimestamp).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
       const historyItem = {
         id: Date.now(),
         templateName: activeTemplateKey,
         dateStr: dateStrFormatted,
-        timestamp: Date.now(),
+        timestamp: endTimestamp,
         startTime: workoutStartTime ? new Date(workoutStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A',
-        endTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        totalDurationMin: workoutStartTime ? Math.max(1, Math.round((Date.now() - workoutStartTime) / 60000)) : 0,
+        endTime: endDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        totalDurationMin: workoutStartTime ? Math.max(0, Math.round((endTimestamp - workoutStartTime) / 60000)) : 0,
         exercises: savedExercises
       };
 
@@ -777,10 +835,16 @@
 
       workoutActive = false;
       workoutStartTime = null;
+      lastActivityTime = null;
 
       saveState();
       stopTimer();
-      alert("Workout saved to history!");
+
+      if (isAutoFinish) {
+        alert("⏰ Время тренировки истекло! Тренировка автоматически завершена и сохранена.");
+      } else {
+        alert("Workout saved to history!");
+      }
       switchTab('history');
     }
 
@@ -790,6 +854,7 @@
         currentList.forEach(ex => {
           if (ex.sets) ex.sets.forEach(s => s.done = false);
         });
+        lastActivityTime = null;
         saveState();
         renderTracker();
       }
@@ -935,6 +1000,7 @@
 
       if (set.done) {
         ex.completedAt = Date.now();
+        lastActivityTime = Date.now();
         if (set.pause > 0) {
           startTimer(set.pause, exIdx);
         }
@@ -961,6 +1027,7 @@
     function updateCardioText(exIdx, value) {
       if (workoutTemplates[activeTemplateKey][exIdx]) {
         workoutTemplates[activeTemplateKey][exIdx].text = value;
+        lastActivityTime = Date.now();
         saveStateToLocal();
       }
     }
@@ -1030,6 +1097,11 @@
           selectEl.appendChild(opt);
         });
       }
+
+      const autoToggle = document.getElementById('auto-end-toggle');
+      const autoMinsInput = document.getElementById('auto-end-mins');
+      if (autoToggle) autoToggle.checked = autoEndEnabled;
+      if (autoMinsInput) autoMinsInput.value = autoEndMins;
 
       const banner = document.getElementById('start-banner');
       const info = document.getElementById('start-info');
@@ -1361,7 +1433,7 @@
 
     function exportToFile() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-        workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout
+        workoutTemplates, activeTemplateKey, workoutHistory, customEstWorkout, autoEndEnabled, autoEndMins
       }, null, 2));
       const dlAnchorElem = document.createElement('a');
       dlAnchorElem.setAttribute("href", dataStr);
@@ -1380,6 +1452,8 @@
           if (parsed.activeTemplateKey) activeTemplateKey = parsed.activeTemplateKey;
           if (parsed.workoutHistory) workoutHistory = parsed.workoutHistory;
           if (parsed.customEstWorkout !== undefined) customEstWorkout = parsed.customEstWorkout;
+          if (parsed.autoEndEnabled !== undefined) autoEndEnabled = parsed.autoEndEnabled;
+          if (parsed.autoEndMins !== undefined) autoEndMins = parsed.autoEndMins;
           sanitizeData();
           saveState();
           renderTracker();
